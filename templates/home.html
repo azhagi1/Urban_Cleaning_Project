@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
 <!-- Google Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 
 <style>
-/* Base Body Style */
 body {
-    background-color: #f8f1e7;
-    font-family: 'Roboto', sans-serif; /* Changed to a professional font */
+    background: url("{{ url_for('static', filename='images/urban_wash.jpg') }}") no-repeat center center fixed;
+    background-size: cover;
+    font-family: 'Roboto', sans-serif;
+    color: #f2f9ff;
+    background-blend-mode: overlay;
+    background-color: rgba(22, 23, 23, 0.345);
 }
 
 .hero {
     position: relative;
-    background: url('https://images.unsplash.com/photo-1583771510521-b1f3a68c0807') no-repeat center center/cover;
+    background: linear-gradient(to right, #001f3f, #0074D9);
     height: 300px;
     border-radius: 15px;
     margin-bottom: 30px;
@@ -28,7 +31,7 @@ body {
     left: 0;
     height: 100%;
     width: 100%;
-    background: rgba(0, 0, 0, 0.6); /* Dark overlay */
+    background: linear-gradient(to bottom right, rgba(0, 31, 63, 0.2), rgba(0, 116, 217, 0.1));
     border-radius: 15px;
     z-index: 0;
 }
@@ -36,39 +39,66 @@ body {
 .hero .content {
     position: relative;
     z-index: 1;
-    color: #fff;
     text-align: center;
-    font-family: 'Rock Salt', cursive; /* Harry Potter-like font for heading */
 }
 
 .hero h1 {
+    font-family: 'Playfair Display', serif;
     font-size: 3.5em;
+    background: linear-gradient(to right, #00c6ff, #0072ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     margin-bottom: 10px;
-    color: #f1c40f; /* Gold for a magical touch */
 }
 
 .hero p {
     font-size: 1.5em;
+    color: #dbeafe;
+}
+
+h2.gradient-heading {
+    color: #001f3f; /* Dark blue */
+    font-family: 'Playfair Display', serif;
+    font-weight: bold;
+}
+
+form label {
+    color: #001f3f;
+    font-weight: bold;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1em;
+}
+
+input, select {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border: 1px solid #00c6ff;
+    font-family: 'Roboto', sans-serif;
+}
+
+input::placeholder {
+    color: #28c1ec;
 }
 
 .service-card {
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: transform 0.2s, background-color 0.3s, border-color 0.3s;
+    border: 2px solid #00c6ff;
     border-radius: 10px;
-    background-color: #f7e8b4;
-}
-
-.service-card:hover {
-    transform: scale(1.03);
-    box-shadow: 0 0 15px rgba(255, 223, 0, 0.8); /* Glow effect */
+    background: linear-gradient(135deg, #88c0f1, #58b5ce);
+    transition: transform 0.2s, background-color 0.3s, border-color 0.3s;
+    color: #fff;
 }
 
 .service-card.selected {
-    background-color: #e67e22; /* Gryffindor Orange */
-    color: #fff;
-    border-color: #9b4d1f; /* Gryffindor Red */
+    background: linear-gradient(135deg, #048811, #b6cdb6);
+    color: #003366;
+    border-color: #fff;
     font-weight: bold;
+}
+
+.service-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 198, 255, 0.6);
 }
 
 input[type="checkbox"] {
@@ -76,32 +106,30 @@ input[type="checkbox"] {
 }
 
 .card-title {
+    font-size: 1.3em;
+    font-family: 'Roboto', sans-serif;
+}
+
+.gryffindor, .slytherin, .ravenclaw {
+    background-color: transparent;
+}
+
+.btn {
+    background: linear-gradient(to right, #0074D9, #00c6ff);
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 35px;
     font-size: 1.2em;
-    font-weight: 600;
-    font-family: 'Roboto', sans-serif; /* Professional font for titles */
+    transition: all 0.3s ease;
 }
 
-/* Hogwarts House Colors */
-.gryffindor {
-    background-color: #9b4d1f;
-    color: #fff;
+.btn:hover {
+    background: #fff;
+    color: #0074D9;
+    border: 1px solid #0074D9;
 }
-
-.slytherin {
-    background-color: #2a5d5c;
-    color: #fff;
-}
-
-.ravenclaw {
-    background-color: #001f5f;
-    color: #fff;
-}
-
-.hufflepuff {
-    background-color: #f7b71d;
-    color: #fff;
-}
-
 </style>
 
 <div class="hero">
@@ -113,30 +141,30 @@ input[type="checkbox"] {
 
 <div class="container mt-5">
     <form method="POST" action="{{ url_for('book_services') }}">
-        <h2 class="text-center mb-4" style="color:#6a0dad; font-family: 'Rock Salt', cursive;">Book Your Magical Cleaning</h2>
+        <h2 class="text-center mb-4 gradient-heading">Book Your Cleaning</h2>
 
         <!-- Date & Time -->
         <div class="row mb-4">
             <div class="col-md-4">
-                <label for="date"><strong>Select Date:</strong></label>
+                <label for="date">Select Date:</label>
                 <input type="date" name="date" class="form-control" required>
             </div>
             <div class="col-md-4">
-                <label for="start_time"><strong>Start Time:</strong></label>
+                <label for="start_time">Start Time:</label>
                 <input type="time" name="start_time" class="form-control" required>
             </div>
             <div class="col-md-4">
-                <label for="end_time"><strong>End Time:</strong></label>
+                <label for="end_time">End Time:</label>
                 <input type="time" name="end_time" class="form-control" required>
             </div>
         </div>
 
         <!-- Services -->
-        <h4 class="text-center mb-3" style="color:#8a2be2;">Choose Your Services</h4>
+        <h4 class="text-center mb-3">Choose Your Services</h4>
         <div class="row text-center">
             <!-- Kitchen Cleaning -->
             <div class="col-md-4 mb-3">
-                <label class="card service-card gryffindor shadow-sm p-3">
+                <label class="card service-card gryffindor shadow p-3">
                     <input type="checkbox" name="services" value="Kitchen">
                     <img src="https://img.icons8.com/color/96/000000/kitchen.png" class="card-img-top w-50 mx-auto pt-3" />
                     <div class="card-body">
@@ -146,7 +174,7 @@ input[type="checkbox"] {
             </div>
             <!-- Floor Cleaning -->
             <div class="col-md-4 mb-3">
-                <label class="card service-card slytherin shadow-sm p-3">
+                <label class="card service-card slytherin shadow p-3">
                     <input type="checkbox" name="services" value="Floor">
                     <img src="https://img.icons8.com/color/96/000000/broom.png" class="card-img-top w-50 mx-auto pt-3" />
                     <div class="card-body">
@@ -156,7 +184,7 @@ input[type="checkbox"] {
             </div>
             <!-- AC Service -->
             <div class="col-md-4 mb-3">
-                <label class="card service-card ravenclaw shadow-sm p-3">
+                <label class="card service-card ravenclaw shadow p-3">
                     <input type="checkbox" name="services" value="AC">
                     <img src="https://img.icons8.com/color/96/000000/air-conditioner.png" class="card-img-top w-50 mx-auto pt-3" />
                     <div class="card-body">
@@ -167,7 +195,7 @@ input[type="checkbox"] {
         </div>
 
         <div class="text-center mt-4">
-            <button class="btn btn-lg" style="background-color:#e67e22; color:white; font-family: 'Roboto', sans-serif; padding: 10px 30px;">
+            <button class="btn">
                 ✨ Book Selected Services ✨
             </button>
         </div>
@@ -186,5 +214,4 @@ input[type="checkbox"] {
         });
     });
 </script>
-
 {% endblock %}
