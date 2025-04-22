@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-center">{{ service }} Service Providers</h2>
+<ul class="list-group mt-4 shadow-sm">
+    {% for provider in providers %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <strong>{{ provider.name }}</strong>
+        <span>📞 {{ provider.contact }}</span>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
