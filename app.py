@@ -2,9 +2,23 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import create_connection
-from email_utils import generate_code, send_verification_code
+from email_utils import generate_code, send_verification_code, send_reset_link
 import threading
 from datetime import datetime
+from itsdangerous import URLSafeTimedSerializer
+
+
+
+def generate_reset_token(email):
+    return serializer.dumps(email, salt='password-reset-salt')
+
+def verify_reset_token(token, expiration=3600):
+    try:
+        email = serializer.loads(token, salt='password-reset-salt', max_age=expiration)
+    except:
+        return None
+    return email
+
 
 import mysql.connector
 
@@ -13,7 +27,7 @@ from config import create_connection, SECRET_KEY
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY  # Flask session key
-
+serializer = URLSafeTimedSerializer(app.secret_key)
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -72,16 +86,18 @@ def login():
         cursor.close()
         conn.close()
         print(user)
-        if user and (user['password']==password):
+        if user and check_password_hash(user['password'], password):
+        
             if user['is_verified']:
                 login_user(User(user['user_id'], user['name'], email, user['phone_number']))
+                flash("Login successful.")
                 return redirect(url_for('home'))
             else:
                 flash("Please verify your email.")
         else:
             flash("Invalid credentials.")
         flash("Login successful.") 
-    return render_template('home.html')
+    return render_template('login.html')
 
 verification_codes = {}  # Format: { email: {"code": ..., "expires_at": ...} }
 
@@ -163,10 +179,33 @@ def logout():
     flash("You have been logged out.")
     return redirect(url_for('home'))
 
-
-@app.route('/forgot-password')
+reset_codes = {}
+@app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        conn = create_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not user:
+            flash("Email not found.")
+            return redirect(url_for('forgot_password'))
+
+        token = generate_reset_token(email)
+        reset_link = url_for('reset_password', token=token, _external=True)
+        send_reset_link(email, reset_link)
+
+        flash("Password reset link sent to your email.")
+        return redirect(url_for('login'))
+
     return render_template('forgot_password.html')
+
+def send_email_thread(email, code):
+    threading.Thread(target=send_verification_code, args=(email, code)).start()
 
 from flask import jsonify
 @app.route('/book_services', methods=['POST'])
@@ -201,6 +240,60 @@ def book_services():
         return redirect(url_for('ask_single_worker'))
     else:
         return redirect(url_for('multiple_worker'))
+
+@app.route('/verify-reset', methods=['GET', 'POST'])
+def verify_reset():
+    email = session.get('reset_email')
+    if not email:
+        flash("Session expired.")
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        code_entered = request.form['code']
+        if code_entered == reset_codes.get(email):
+            flash("OTP verified.")
+            return redirect(url_for('reset_password'))
+        else:
+            flash("Invalid code.")
+
+    return render_template('verify_reset.html')
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    email = verify_reset_token(token)
+    if not email:
+        flash("The reset link is invalid or has expired.")
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        password = request.form['password']
+        confirm = request.form['confirm_password']
+
+        if password != confirm:
+            flash("Passwords do not match.")
+            return redirect(request.url)
+
+        hashed = generate_password_hash(password)
+
+        conn = create_connection()
+        cursor = conn.cursor()
+
+        # ✅ Update password and mark user as verified
+        cursor.execute("""
+            UPDATE Users 
+            SET password = %s, is_verified = 1 
+            WHERE email = %s
+        """, (hashed, email))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash("Password reset successful. Please login.")
+        return redirect(url_for('login'))
+
+    return render_template('reset_password_token.html', email=email)
+
+
 
 @app.route('/available_workers')
 def available_workers():
@@ -349,6 +442,8 @@ def multiple_worker():
     conn.close()
 
     return render_template('multiple_worker.html', tasks=selected_tasks, employees=employees_by_task)
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
