@@ -57,8 +57,7 @@ def handle_single_worker_choice():
     if choice == 'yes':
         return redirect(url_for('available_workers'))
     else:
-        return render_template('multiple_worker.html')
-        #return redirect(url_for('multiple_worker'))
+        return redirect(url_for('multiple_worker'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -277,6 +276,79 @@ def available_workers():
     conn.close()
 
     return render_template('available_employees.html', employees=available_employees, tasks=selected_tasks)
+
+@app.route('/multiple_worker')
+def multiple_worker():
+    booking_data = session.get('booking_data')
+
+    if not booking_data:
+        flash("Booking details missing. Please try again.")
+        return redirect(url_for('home'))
+
+    selected_tasks = booking_data.get('services', [])
+    date_str = booking_data.get('date')
+    start_time_str = booking_data.get('start_time')
+    end_time_str = booking_data.get('end_time')
+
+    try:
+        start_datetime = datetime.strptime(f"{date_str} {start_time_str}", "%Y-%m-%d %H:%M")
+        end_datetime = datetime.strptime(f"{date_str} {end_time_str}", "%Y-%m-%d %H:%M")
+    except Exception as e:
+        flash("Invalid date/time format.")
+        return redirect(url_for('home'))
+
+    employees_by_task = {}
+
+    conn = create_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    for task_name in selected_tasks:
+        # Step 1: Get task_id
+        cursor.execute("SELECT task_id FROM Tasks WHERE task_name = %s", (task_name,))
+        task_row = cursor.fetchone()
+        if not task_row:
+            continue
+        task_id = task_row['task_id']
+
+        # Step 2: Get employees who are specialized in this task
+        cursor.execute("""
+            SELECT e.*
+            FROM Employees e
+            JOIN Employee_Specializations es ON e.employee_id = es.employee_id
+            WHERE es.task_id = %s
+        """, (task_id,))
+        employees = cursor.fetchall()
+
+        if not employees:
+            employees_by_task[task_name] = []
+            continue
+
+        employee_ids = [emp['employee_id'] for emp in employees]
+
+        # Step 3: Filter out employees blocked in this time window
+        format_strings = ','.join(['%s'] * len(employee_ids))
+        cursor.execute(f"""
+            SELECT DISTINCT employee_id
+            FROM Employee_Blocked_Slots
+            WHERE employee_id IN ({format_strings})
+              AND block_status = 'confirmed'
+              AND (
+                    (blocked_from <= %s AND blocked_to > %s) OR
+                    (blocked_from < %s AND blocked_to >= %s) OR
+                    (blocked_from >= %s AND blocked_to <= %s)
+                  )
+        """, (*employee_ids, start_datetime, start_datetime, end_datetime, end_datetime, start_datetime, end_datetime))
+
+        blocked_ids = [row['employee_id'] for row in cursor.fetchall()]
+
+        # Step 4: Filter out blocked employees
+        available_employees = [emp for emp in employees if emp['employee_id'] not in blocked_ids]
+        employees_by_task[task_name] = available_employees
+
+    cursor.close()
+    conn.close()
+
+    return render_template('multiple_worker.html', tasks=selected_tasks, employees=employees_by_task)
 
 if __name__ == '__main__':
     app.run(debug=True)
