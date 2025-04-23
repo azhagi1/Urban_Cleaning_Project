@@ -3,8 +3,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import create_connection
 from email_utils import generate_code, send_verification_code
-from datetime import datetime, timedelta
-
+import threading
 import mysql.connector
 
 from flask import Flask
@@ -36,9 +35,16 @@ def load_user(user_id):
         return User(user['user_id'], user['name'], user['email'], user['phone_number'])
     return None
 
+def send_email_in_background(email, code):
+    threading.Thread(target=send_verification_code, args=(email, code)).start()
+
+from datetime import date
+
 @app.route('/')
 def home():
-    return render_template('home.html')
+    today = date.today().strftime('%Y-%m-%d')
+    return render_template('home.html', today=today)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -51,14 +57,15 @@ def login():
         user = cursor.fetchone()
         cursor.close()
         conn.close()
-        """if user and check_password_hash(user['password'], password):
+        print(user)
+        if user and (user['password']==password):
             if user['is_verified']:
                 login_user(User(user['user_id'], user['name'], email, user['phone_number']))
                 return redirect(url_for('home'))
             else:
                 flash("Please verify your email.")
         else:
-            flash("Invalid credentials.")"""
+            flash("Invalid credentials.")
         flash("Login successful.") 
     return render_template('home.html')
 
@@ -67,7 +74,7 @@ verification_codes = {}  # Format: { email: {"code": ..., "expires_at": ...} }
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        name = request.form['username']
+        username = request.form['username']
         email = request.form['email']
         phone = request.form['phone']
 
@@ -76,44 +83,70 @@ def register():
         cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
         if cursor.fetchone():
             flash("Email already exists.")
+            cursor.close()
+            conn.close()
             return redirect(url_for('register'))
 
-        # Generate OTP and expiry
+        cursor.execute("INSERT INTO Users (name, email, phone_number, is_verified) VALUES (%s, %s, %s, %s)",
+                       (username, email, phone, False))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
         code = generate_code()
-        expires_at = datetime.now() + timedelta(minutes=5)
-        verification_codes[email] = {'code': code, 'expires_at': expires_at, 'name': name, 'phone': phone}
-
-        send_verification_code(email, code)
+        verification_codes[email] = code
+        send_email_in_background(email, code)  # ✅ send in background
         session['email_to_verify'] = email
+        flash("Verification code sent to your email.")
+        return redirect(url_for('verify_email'))
+    return render_template('register.html')
 
-    return redirect(url_for('otp'))
-
-@app.route('/verify_email', methods=['GET', 'POST'])
+@app.route('/verify', methods=['GET', 'POST'])
 def verify_email():
     email = session.get('email_to_verify')
     if not email:
-        flash("Session expired. Please try again.")
         return redirect(url_for('register'))
 
     if request.method == 'POST':
-        user_input_code = request.form['otp']
-        data = verification_codes.get(email)
-
-        if data and data['code'] == user_input_code:
-            if datetime.now() <= data['expires_at']:
-                session['verified_email'] = email
+        if 'resend' in request.form:
+            code = generate_code()
+            verification_codes[email] = code
+            send_email_in_background(email, code)  # ✅ resend in background
+            flash("New verification code sent.")
+        else:
+            code = request.form['code']
+            if code == verification_codes.get(email):
+                flash("OTP verified. Please set your password.")
                 return redirect(url_for('set_password'))
             else:
-                flash("OTP expired. Please register again.")
-                return redirect(url_for('otp'))
-        else:
-            flash("Invalid OTP.")
-            return redirect(url_for('otp'))
+                flash("Incorrect verification code.")
+    return render_template('verify_email.html', email=email)
+
+# ---------- Set Password ----------
+@app.route('/set-password', methods=['GET', 'POST'])
+def set_password():
+    email = session.get('email_to_verify')
+    if not email:
+        return redirect(url_for('register'))
+
+    if request.method == 'POST':
+        password = generate_password_hash(request.form['password'])
+        conn = create_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Users SET password = %s, is_verified = TRUE WHERE email = %s", (password, email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash("Registration complete. You can now login.")
+        session.pop('email_to_verify', None)
+        return redirect(url_for('login'))
+    return render_template('set_password.html')
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
+    flash("You have been logged out.")
     return redirect(url_for('home'))
 
 
