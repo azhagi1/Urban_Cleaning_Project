@@ -6,6 +6,6 @@ def get_connection():
         host=os.getenv("DB_HOST", "mydb.c1q2w4gis34j.ap-south-1.rds.amazonaws.com"),
         user=os.getenv("DB_USER", "admin"),
         password=os.getenv("DB_PASSWORD", "Sreenithi123"),
-        database=os.getenv("DB_NAME", "mydb"),
+        database=os.getenv("DB_NAME", "urban_cleaning"),
         cursorclass=pymysql.cursors.DictCursor
     )
