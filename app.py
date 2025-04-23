@@ -68,8 +68,7 @@ def register():
         name = request.form['username']
         email = request.form['email']
         phone = request.form['phone']
-        password = generate_password_hash(request.form['password'])
-
+        password = request.form['password']
         conn = create_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
