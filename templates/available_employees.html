@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Available Employees</h2>
+
+    {% if employees %}
+        <div class="row">
+        {% for emp in employees %}
+            <div class="col-md-4">
+                <div class="card mb-4 shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ emp.name }}</h5>
+                        <p>Email: {{ emp.email }}</p>
+                        <p>Phone: {{ emp.phone_number }}</p>
+                        <p>Gender: {{ emp.gender }}</p>
+                        <p>Age: {{ emp.age }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-center text-danger">No employees available for the selected tasks and time.</p>
+    {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}

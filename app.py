@@ -60,7 +60,7 @@ def login():
         else:
             flash("Invalid credentials.")"""
         flash("Login successful.") 
-    return render_template('login.html')
+    return render_template('home.html')
 
 verification_codes = {}  # Format: { email: {"code": ..., "expires_at": ...} }
 
@@ -86,9 +86,7 @@ def register():
         send_verification_code(email, code)
         session['email_to_verify'] = email
 
-        return redirect(url_for('verify_email'))
-
-    return render_template('register.html')
+    return redirect(url_for('otp'))
 
 @app.route('/verify_email', methods=['GET', 'POST'])
 def verify_email():
@@ -107,12 +105,10 @@ def verify_email():
                 return redirect(url_for('set_password'))
             else:
                 flash("OTP expired. Please register again.")
-                return redirect(url_for('register'))
+                return redirect(url_for('otp'))
         else:
             flash("Invalid OTP.")
-            return redirect(url_for('verify_email'))
-
-    return render_template('verify_email.html')
+            return redirect(url_for('otp'))
 
 @app.route('/logout')
 @login_required
@@ -120,27 +116,82 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-@app.route('/book_services', methods=['POST'])
-@login_required
-def book_services():
-    services = ', '.join(request.form.getlist('services'))
-    date = request.form['date']
-    time = f"{request.form['start_time']} - {request.form['end_time']}"
-
-    conn = create_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO Booking (user_id, services, date, time) VALUES (%s, %s, %s, %s)",
-                   (current_user.id, services, date, time))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    flash(f"Booked: {services} on {date} at {time}")
-    return redirect(url_for('home'))
 
 @app.route('/forgot-password')
 def forgot_password():
     return render_template('forgot_password.html')
+
+from flask import jsonify
+
+@app.route('/book_services', methods=['POST'])
+def book_services():
+    if request.method == 'POST':
+        selected_date = request.form.get('date')
+        start_time = request.form.get('start_time')
+        end_time = request.form.get('end_time')
+        selected_tasks = request.form.getlist('services')
+
+        if not selected_tasks:
+            flash("Please select at least one service.")
+            return redirect(url_for('home'))
+
+        start_datetime = f"{selected_date} {start_time}:00"
+        end_datetime = f"{selected_date} {end_time}:00"
+
+        conn = create_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Step 1: Get task IDs for selected task names
+        format_strings = ','.join(['%s'] * len(selected_tasks))
+        cursor.execute(f"SELECT task_id FROM Tasks WHERE task_name IN ({format_strings})", tuple(selected_tasks))
+        task_ids = [row['task_id'] for row in cursor.fetchall()]
+
+        if not task_ids:
+            flash("No matching tasks found.")
+            return redirect(url_for('home'))
+
+        # Step 2: Find employees who have ALL the selected specializations
+        cursor.execute(f"""
+            SELECT employee_id
+            FROM Employee_Specializations
+            WHERE task_id IN ({','.join(['%s'] * len(task_ids))})
+            GROUP BY employee_id
+            HAVING COUNT(DISTINCT task_id) = %s
+        """, (*task_ids, len(task_ids)))
+
+        employee_ids = [row['employee_id'] for row in cursor.fetchall()]
+
+        if not employee_ids:
+            flash("No employee found with all selected skills.")
+            return redirect(url_for('home'))
+
+        # Step 3: Filter out blocked employees in the time window
+        cursor.execute(f"""
+            SELECT DISTINCT employee_id
+            FROM Employee_Blocked_Slots
+            WHERE block_status = 'confirmed'
+              AND (
+                    (blocked_from <= %s AND blocked_to > %s) OR
+                    (blocked_from < %s AND blocked_to >= %s) OR
+                    (blocked_from >= %s AND blocked_to <= %s)
+                  )
+        """, (start_datetime, start_datetime, end_datetime, end_datetime, start_datetime, end_datetime))
+
+        blocked_ids = [row['employee_id'] for row in cursor.fetchall()]
+        available_ids = [emp_id for emp_id in employee_ids if emp_id not in blocked_ids]
+
+        # Step 4: Get employee details
+        if available_ids:
+            format_strings = ','.join(['%s'] * len(available_ids))
+            cursor.execute(f"SELECT * FROM Employees WHERE employee_id IN ({format_strings})", tuple(available_ids))
+            available_employees = cursor.fetchall()
+        else:
+            available_employees = []
+
+        cursor.close()
+        conn.close()
+
+        return render_template('available_employees.html', employees=available_employees, tasks=selected_tasks)
 
 if __name__ == '__main__':
     app.run(debug=True)
