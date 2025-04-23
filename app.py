@@ -3,7 +3,6 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import create_connection
 from email_utils import generate_code, send_verification_code
-from datetime import datetime, timedelta
 import threading
 import mysql.connector
 
@@ -39,9 +38,13 @@ def load_user(user_id):
 def send_email_in_background(email, code):
     threading.Thread(target=send_verification_code, args=(email, code)).start()
 
+from datetime import date
+
 @app.route('/')
 def home():
-    return render_template('home.html')
+    today = date.today().strftime('%Y-%m-%d')
+    return render_template('home.html', today=today)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

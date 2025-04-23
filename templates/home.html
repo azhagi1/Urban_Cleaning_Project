@@ -147,8 +147,9 @@ input[type="checkbox"] {
         <div class="row mb-4">
             <div class="col-md-4">
                 <label for="date">Select Date:</label>
-                <input type="date" name="date" class="form-control" required>
-            </div>
+                <input type="date" name="date" class="form-control date-box" required min="{{ today }}">
+            </div>            
+            
             <div class="col-md-4">
                 <label for="start_time">Start Time:</label>
                 <input type="time" name="start_time" class="form-control" required>
