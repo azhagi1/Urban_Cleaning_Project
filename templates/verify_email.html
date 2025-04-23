@@ -4,24 +4,48 @@
   <meta charset="UTF-8">
   <title>Verify Email</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <script>
+    let countdown = 60;
+    function updateTimer() {
+      if (countdown <= 0) {
+        document.getElementById("resend-section").classList.remove("d-none");
+        document.getElementById("timer").classList.add("d-none");
+        return;
+      }
+      document.getElementById("time").innerText = countdown;
+      countdown--;
+      setTimeout(updateTimer, 1000);
+    }
+    window.onload = updateTimer;
+  </script>
 </head>
 <body class="bg-light">
   <div class="container mt-5 col-md-6">
     <div class="card shadow">
       <div class="card-body">
-        <h3 class="text-center mb-4">Email Verification</h3>
+        <h4 class="text-center mb-3">Enter the OTP sent to {{ email }}</h4>
         <form method="POST">
           <div class="mb-3">
-            <label>Enter Verification Code (sent to your email)</label>
+            <label>Verification Code</label>
             <input type="text" name="code" class="form-control" required>
           </div>
           <div class="text-center">
-            <button type="submit" class="btn btn-info w-100">Verify</button>
+            <button type="submit" class="btn btn-primary w-100">Verify</button>
           </div>
         </form>
+
+        <div id="timer" class="text-center mt-3 text-muted">
+          Resend OTP in <span id="time">60</span> seconds
+        </div>
+
+        <form method="POST" id="resend-section" class="text-center mt-3 d-none">
+          <input type="hidden" name="resend" value="1">
+          <button type="submit" class="btn btn-link">Resend OTP</button>
+        </form>
+
         {% with messages = get_flashed_messages() %}
           {% if messages %}
-            <div class="alert alert-danger mt-3">{{ messages[0] }}</div>
+            <div class="alert alert-warning mt-3">{{ messages[0] }}</div>
           {% endif %}
         {% endwith %}
       </div>
