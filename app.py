@@ -208,7 +208,9 @@ def send_email_thread(email, code):
     threading.Thread(target=send_verification_code, args=(email, code)).start()
 
 from flask import jsonify
+
 @app.route('/book_services', methods=['POST'])
+@login_required
 def book_services():
     # Get form values
     date_str = request.form['date']
@@ -370,7 +372,7 @@ def available_workers():
 
     return render_template('available_employees.html', employees=available_employees, tasks=selected_tasks)
 
-@app.route('/multiple_worker')
+@app.route('/multiple_worker', methods=['GET', 'POST'])
 def multiple_worker():
     booking_data = session.get('booking_data')
 
@@ -386,27 +388,23 @@ def multiple_worker():
     try:
         start_datetime = datetime.strptime(f"{date_str} {start_time_str}", "%Y-%m-%d %H:%M")
         end_datetime = datetime.strptime(f"{date_str} {end_time_str}", "%Y-%m-%d %H:%M")
-    except Exception as e:
+    except Exception:
         flash("Invalid date/time format.")
         return redirect(url_for('home'))
 
     employees_by_task = {}
-
     conn = create_connection()
     cursor = conn.cursor(dictionary=True)
 
     for task_name in selected_tasks:
-        # Step 1: Get task_id
         cursor.execute("SELECT task_id FROM Tasks WHERE task_name = %s", (task_name,))
         task_row = cursor.fetchone()
         if not task_row:
             continue
         task_id = task_row['task_id']
 
-        # Step 2: Get employees who are specialized in this task
         cursor.execute("""
-            SELECT e.*
-            FROM Employees e
+            SELECT e.* FROM Employees e
             JOIN Employee_Specializations es ON e.employee_id = es.employee_id
             WHERE es.task_id = %s
         """, (task_id,))
@@ -417,9 +415,8 @@ def multiple_worker():
             continue
 
         employee_ids = [emp['employee_id'] for emp in employees]
-
-        # Step 3: Filter out employees blocked in this time window
         format_strings = ','.join(['%s'] * len(employee_ids))
+
         cursor.execute(f"""
             SELECT DISTINCT employee_id
             FROM Employee_Blocked_Slots
@@ -433,8 +430,6 @@ def multiple_worker():
         """, (*employee_ids, start_datetime, start_datetime, end_datetime, end_datetime, start_datetime, end_datetime))
 
         blocked_ids = [row['employee_id'] for row in cursor.fetchall()]
-
-        # Step 4: Filter out blocked employees
         available_employees = [emp for emp in employees if emp['employee_id'] not in blocked_ids]
         employees_by_task[task_name] = available_employees
 
@@ -442,6 +437,51 @@ def multiple_worker():
     conn.close()
 
     return render_template('multiple_worker.html', tasks=selected_tasks, employees=employees_by_task)
+
+@app.route('/confirm_single_employee', methods=['POST'])
+def confirm_single_employee():
+    emp_id = request.form.get('selected_employee_id')
+    if emp_id:
+        flash("Our worker is ready to serve you!!", "success")
+        return redirect(url_for('home'))
+    else:
+        flash("Please select an employee to book.", "danger")
+        return redirect(url_for('available_employees'))
+
+@app.route('/confirm_booking', methods=['POST'])
+def confirm_booking():
+    selected_workers = request.form
+    flash("Our workers are ready to serve you!!")
+    return redirect(url_for('home'))
+
+@login_required
+@app.route('/book_multiple_workers', methods=['POST'])
+def book_multiple_workers():
+    selected_workers = {}
+    for key in request.form:
+        if key.startswith('selected_worker_'):
+            task = key.replace('selected_worker_', '')
+            worker_id = request.form[key]
+            selected_workers[task] = worker_id
+
+    if not selected_workers:
+        flash("Please select at least one worker.")
+        return redirect(url_for('multiple_worker'))
+
+    # Store selected_workers into your Booking or Blocked_Tasks table
+    conn = create_connection()
+    cursor = conn.cursor()
+    for task, emp_id in selected_workers.items():
+        cursor.execute("""
+            INSERT INTO Blocked_Tasks (user_id, employee_id, task_name)
+            VALUES (%s, %s, %s)
+        """, (current_user.id, emp_id, task))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash("Our workers are ready to serve you!!")
+    return redirect(url_for('home'))
 
 
 
