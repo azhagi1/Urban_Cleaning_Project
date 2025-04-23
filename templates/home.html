@@ -46,6 +46,7 @@ body {
     font-family: 'Playfair Display', serif;
     font-size: 3.5em;
     background: linear-gradient(to right, #00c6ff, #0072ff);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 10px;
@@ -57,7 +58,7 @@ body {
 }
 
 h2.gradient-heading {
-    color: #001f3f; /* Dark blue */
+    color: #001f3f;
     font-family: 'Playfair Display', serif;
     font-weight: bold;
 }
@@ -152,11 +153,11 @@ input[type="checkbox"] {
             
             <div class="col-md-4">
                 <label for="start_time">Start Time:</label>
-                <input type="time" name="start_time" class="form-control" required>
+                <input type="time" name="start_time" id="start_time" class="form-control" required min="09:00" max="21:00">
             </div>
             <div class="col-md-4">
                 <label for="end_time">End Time:</label>
-                <input type="time" name="end_time" class="form-control" required>
+                <input type="time" name="end_time" id="end_time" class="form-control" required min="09:00" max="21:00">
             </div>
         </div>
 
@@ -196,9 +197,7 @@ input[type="checkbox"] {
         </div>
 
         <div class="text-center mt-4">
-            <button class="btn">
-                ✨ Book Selected Services ✨
-            </button>
+            <button class="btn">✨ Book Selected Services ✨</button>
         </div>
     </form>
 </div>
@@ -206,7 +205,6 @@ input[type="checkbox"] {
 <!-- Script to toggle selection -->
 <script>
     const serviceCards = document.querySelectorAll('.service-card');
-
     serviceCards.forEach(card => {
         card.addEventListener('click', () => {
             const checkbox = card.querySelector('input[type="checkbox"]');
@@ -214,5 +212,44 @@ input[type="checkbox"] {
             card.classList.toggle('selected', checkbox.checked);
         });
     });
+
+    const startTimeInput = document.getElementById("start_time");
+    const endTimeInput = document.getElementById("end_time");
+    const dateInput = document.querySelector("input[name='date']");
+
+    function updateTimeLimits() {
+        const selectedDate = new Date(dateInput.value);
+        const today = new Date();
+        const isToday = selectedDate.toDateString() === today.toDateString();
+
+        const now = new Date();
+        let minHour = 9;
+
+        if (isToday && now.getHours() >= 9 && now.getHours() < 21) {
+            minHour = now.getMinutes() > 0 ? now.getHours() + 1 : now.getHours();
+            if (minHour > 20) minHour = 20;  // Prevent selecting start_time after 20:00
+        }
+
+        startTimeInput.min = `${String(minHour).padStart(2, '0')}:00`;
+        startTimeInput.max = "20:00";
+        endTimeInput.max = "21:00";
+
+        if (startTimeInput.value) {
+            const [hour, minute] = startTimeInput.value.split(":").map(Number);
+            let newEndMin = hour * 60 + minute + 60;
+
+            if (newEndMin > 1260) newEndMin = 1260;
+
+            const endHour = Math.floor(newEndMin / 60).toString().padStart(2, '0');
+            const endMin = (newEndMin % 60).toString().padStart(2, '0');
+            endTimeInput.min = `${endHour}:${endMin}`;
+        }
+    }
+
+    startTimeInput.addEventListener("change", updateTimeLimits);
+    dateInput.addEventListener("change", updateTimeLimits);
+
+    window.addEventListener("load", updateTimeLimits);
 </script>
+
 {% endblock %}
