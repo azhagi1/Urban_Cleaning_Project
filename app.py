@@ -1,48 +1,40 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from config import create_connection
 from email_utils import generate_code, send_verification_code
-from config import SQLALCHEMY_DATABASE_URI, SECRET_KEY
+import mysql.connector
+
+from flask import Flask
+from config import create_connection, SECRET_KEY
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
-app.config['SECRET_KEY'] = SECRET_KEY
+app.secret_key = SECRET_KEY  # Flask session key
 
-db = SQLAlchemy(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 verification_codes = {}
 
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80))
-    email = db.Column(db.String(120), unique=True)
-    phone = db.Column(db.String(15))
-    password = db.Column(db.String(200))
-    is_verified = db.Column(db.Boolean, default=False)
-
-class ServiceProvider(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    service_type = db.Column(db.String(100))
-    contact = db.Column(db.String(100))
-
-class Booking(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)
-    services = db.Column(db.String(255))
-    date = db.Column(db.String(50))
-    time = db.Column(db.String(50))
-
-with app.app_context():
-    db.create_all()
+class User(UserMixin):
+    def __init__(self, id, username, email, phone):
+        self.id = id
+        self.username = username
+        self.email = email
+        self.phone = phone
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    conn = create_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM Users WHERE user_id = %s", (user_id,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    if user:
+        return User(user['user_id'], user['name'], user['email'], user['phone_number'])
+    return None
 
 @app.route('/')
 def home():
@@ -53,43 +45,51 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password, password):
-            if user.is_verified:
-                login_user(user)
+        conn = create_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        """if user and check_password_hash(user['password'], password):
+            if user['is_verified']:
+                login_user(User(user['user_id'], user['name'], email, user['phone_number']))
                 return redirect(url_for('home'))
             else:
-                flash('Please verify your email before logging in.')
+                flash("Please verify your email.")
         else:
-            flash('Invalid email or password.')
+            flash("Invalid credentials.")"""
+        flash("Login successful.") 
     return render_template('login.html')
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('home'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
+        name = request.form['username']
         email = request.form['email']
         phone = request.form['phone']
-        password = request.form['password']
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            flash('Email already exists.')
-        else:
-            hashed_pw = generate_password_hash(password)
-            new_user = User(username=username, email=email, phone=phone, password=hashed_pw)
-            db.session.add(new_user)
-            db.session.commit()
-            code = generate_code()
-            verification_codes[email] = code
-            send_verification_code(email, code)
-            session['email_to_verify'] = email
-            return redirect(url_for('verify_email'))
+        password = generate_password_hash(request.form['password'])
+
+        conn = create_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
+        if cursor.fetchone():
+            flash("Email already exists.")
+            cursor.close()
+            conn.close()
+            return redirect(url_for('register'))
+
+        cursor.execute("INSERT INTO Users (name, email, phone_number, password) VALUES (%s, %s, %s, %s)",
+                       (name, email, phone, password))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        code = generate_code()
+        verification_codes[email] = code
+        send_verification_code(email, code)
+        session['email_to_verify'] = email
+        return redirect(url_for('verify_email'))
     return render_template('register.html')
 
 @app.route('/verify', methods=['GET', 'POST'])
@@ -97,43 +97,49 @@ def verify_email():
     email = session.get('email_to_verify')
     if not email:
         return redirect(url_for('register'))
+
     if request.method == 'POST':
         code = request.form['code']
         if code == verification_codes.get(email):
-            user = User.query.filter_by(email=email).first()
-            user.is_verified = True
-            db.session.commit()
-            flash('Email verified. Please login.')
+            conn = create_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE Users SET is_verified = TRUE WHERE email = %s", (email,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            flash("Email verified. Please login.")
             return redirect(url_for('login'))
         else:
-            flash('Incorrect verification code.')
+            flash("Incorrect code.")
     return render_template('verify_email.html')
 
-@app.route('/forgot-password')
-def forgot_password():
-    return render_template('forgot_password.html')
-
-@app.route('/service/<service_type>')
+@app.route('/logout')
 @login_required
-def service(service_type):
-    providers = ServiceProvider.query.filter_by(service_type=service_type).all()
-    return render_template('services.html', providers=providers, service=service_type)
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
 
 @app.route('/book_services', methods=['POST'])
 @login_required
 def book_services():
-    selected_services = request.form.getlist('services')
-    preferred_date = request.form.get('date')
-    preferred_time = request.form.get('time')
-    if not selected_services:
-        flash("Please select at least one service.")
-        return redirect(url_for('home'))
-    booking = Booking(user_id=current_user.id, services=', '.join(selected_services),
-                      date=preferred_date, time=preferred_time)
-    db.session.add(booking)
-    db.session.commit()
-    flash(f"Successfully booked: {', '.join(selected_services)} on {preferred_date} at {preferred_time}")
+    services = ', '.join(request.form.getlist('services'))
+    date = request.form['date']
+    time = f"{request.form['start_time']} - {request.form['end_time']}"
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO Booking (user_id, services, date, time) VALUES (%s, %s, %s, %s)",
+                   (current_user.id, services, date, time))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash(f"Booked: {services} on {date} at {time}")
     return redirect(url_for('home'))
+
+@app.route('/forgot-password')
+def forgot_password():
+    return render_template('forgot_password.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

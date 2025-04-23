@@ -1,15 +1,43 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <h2 class="text-center">Sign Up</h2>
-        <form method="POST" class="card p-4 shadow-sm">
-            <div class="mb-3"><input name="username" placeholder="Username" class="form-control" required></div>
-            <div class="mb-3"><input name="email" type="email" placeholder="Email" class="form-control" required></div>
-            <div class="mb-3"><input name="phone" placeholder="Phone Number" class="form-control" required></div>
-            <div class="mb-3"><input name="password" type="password" placeholder="Password" class="form-control" required></div>
-            <button class="btn btn-success w-100" type="submit">Register</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register - Urban Cleaning</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+  <div class="container mt-5 col-md-6">
+    <div class="card shadow">
+      <div class="card-body">
+        <h3 class="text-center mb-4">Sign Up</h3>
+        <form method="POST">
+          <div class="mb-3">
+            <label>Username</label>
+            <input type="text" name="username" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label>Email</label>
+            <input type="email" name="email" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label>Phone Number</label>
+            <input type="text" name="phone" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label>Password</label>
+            <input type="password" name="password" class="form-control" required>
+          </div>
+          <div class="text-center">
+            <button type="submit" class="btn btn-success w-100">Register</button>
+          </div>
         </form>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="alert alert-warning mt-3">{{ messages[0] }}</div>
+          {% endif %}
+        {% endwith %}
+      </div>
     </div>
-</div>
-{% endblock %}
+  </div>
+</body>
+</html>
