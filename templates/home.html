@@ -34,6 +34,7 @@
       background-color: #ccc;
       color: #333;
     }
+    
     .main-content {
       flex: 1;
       display: flex;
@@ -112,11 +113,49 @@
     <div>
       <input class="form-control d-inline w-auto me-2" list="places" placeholder="Choose place">
       <datalist id="places">
-        <option value="Chennai">
-        <option value="Coimbatore">
-        <option value="Madurai">
-        <option value="Tiruchy">
+        <option value="Adyar">
+        <option value="T. Nagar">
+        <option value="Velachery">
+        <option value="Anna Nagar">
+        <option value="Tambaram">
+        <option value="Nungambakkam">
+        <option value="Mylapore">
+        <option value="Guindy">
+        <option value="Kodambakkam">
+        <option value="Saidapet">
+        <option value="Porur">
+        <option value="Vadapalani">
+        <option value="Thiruvanmiyur">
+        <option value="Royapettah">
+        <option value="Egmore">
+        <option value="Perambur">
+        <option value="Pallavaram">
+        <option value="Ashok Nagar">
+        <option value="K.K. Nagar">
+        <option value="Thoraipakkam">
+        <option value="Ambattur">
+        <option value="Kolathur">
+        <option value="Avadi">
+        <option value="Poonamallee">
+        <option value="Chromepet">
+        <option value="Sholinganallur">
+        <option value="Besant Nagar">
+        <option value="Alandur">
+        <option value="Triplicane">
+        <option value="Teynampet">
+        <option value="Manapakkam">
+        <option value="Medavakkam">
+        <option value="Koyambedu">
+        <option value="Arumbakkam">
+        <option value="Vandalur">
+        <option value="Iyyappanthangal">
+        <option value="Kotturpuram">
+        <option value="Ramapuram">
+        <option value="Mogappair">
+        <option value="Villivakkam">
       </datalist>
+      
+      
       {% if current_user.is_authenticated %}
         <span class="text-warning fw-semibold me-3">Hi, {{ current_user.username }}!</span>
         <a href="{{ url_for('logout') }}" class="btn btn-light">Logout</a>
