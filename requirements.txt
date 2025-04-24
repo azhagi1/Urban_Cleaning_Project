@@ -3,4 +3,8 @@ flask-login
 pymysql
 mysql-connector-python
 werkzeug
+<<<<<<< HEAD
 python-dotenv
+=======
+python-dotenv
+>>>>>>> 9f27821a3043875e3f622cb0e7aedc10ba84c3e9
