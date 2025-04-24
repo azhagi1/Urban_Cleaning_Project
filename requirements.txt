@@ -4,3 +4,4 @@ pymysql
 mysql-connector-python
 werkzeug
 python-dotenv
+pytest
