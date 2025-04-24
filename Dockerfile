@@ -1,32 +1,26 @@
 # Base image
-FROM python:3.11-slim
+FROM ubuntu:latest
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Set timezone and install dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    tzdata
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    default-libmysqlclient-dev \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Copy all files into the container
+ADD . /app
 
-# Copy project files
-COPY . .
+# Create virtual environment and install Python dependencies
+RUN python3 -m venv venv && \
+    ./venv/bin/pip install --upgrade pip && \
+    ./venv/bin/pip install -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
-
-# Expose port
+# Expose the Flask port
 EXPOSE 5000
 
-# Run the Flask application
-CMD ["python", "app.py"]
+# Command to run the Flask app
+CMD ["./venv/bin/flask", "run", "--host=0.0.0.0"]

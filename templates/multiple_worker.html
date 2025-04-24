@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Available Employees for Selected Tasks</h2>
+
+    {% if tasks %}
+        {% for task in tasks %}
+            <div class="task-container mb-5 border p-4 rounded bg-light">
+                <h3 class="text-center">{{ task }}</h3>
+
+                {% if employees[task] %}
+                    <div class="row">
+                        {% for emp in employees[task] %}
+                            <div class="col-md-4">
+                                <div class="card mb-4 shadow">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ emp.name }}</h5>
+                                        <p>Email: {{ emp.email }}</p>
+                                        <p>Phone: {{ emp.phone_number }}</p>
+                                        <p>Gender: {{ emp.gender }}</p>
+                                        <p>Age: {{ emp.age }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-center text-danger">No employees available for this task.</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-center text-danger">No tasks selected.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Optional JavaScript -->
+{% endblock %}
