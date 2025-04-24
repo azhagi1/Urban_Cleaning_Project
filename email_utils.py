@@ -9,26 +9,27 @@ def generate_code():
 import smtplib
 from email.mime.text import MIMEText
 
-def send_verification_code(email, code):
-    sender_email = "urbancleaning20@gmail.com"
-    sender_password = "gqqs pipw qvzn awxd"  # Use App Password
+def send_verification_code(to_email, code):
+    sender_email = "neatnestcleaningservice1.0@gmail.com"
+    sender_password = "kcww zbfo hhkc ygkq"  # App password, not Gmail password
 
-    subject = "Your OTP Verification Code"
+    subject = "NeatNest Email Verification Code"
     body = f"Your verification code is: {code}"
 
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = sender_email
-    msg["To"] = email
+    message = MIMEText(body)
+    message['From'] = sender_email
+    message['To'] = to_email
+    message['Subject'] = subject
 
     try:
-        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server = smtplib.SMTP("smtp.gmail.com", 587)  # TLS port
+        server.starttls()
         server.login(sender_email, sender_password)
-        server.sendmail(sender_email, email, msg.as_string())
+        server.sendmail(sender_email, to_email, message.as_string())
         server.quit()
-        print("Email sent successfully")
     except Exception as e:
         print("Error sending email:", e)
+
 
 def send_reset_link(email, reset_link):
     import smtplib
@@ -41,6 +42,6 @@ def send_reset_link(email, reset_link):
 
     with smtplib.SMTP('smtp.gmail.com', 587) as server:
         server.starttls()
-        server.login('urbancleaning20@gmail.com', 'gqqs pipw qvzn awxd')
+        server.login('neatnestcleaningservice1.0@gmail.com', 'kcww zbfo hhkc ygkq')
         server.send_message(msg)
 
