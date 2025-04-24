@@ -248,6 +248,9 @@ def reset_password(token):
 
     return render_template('reset_password_token.html', email=email)
 
+@app.route("/check-out")
+def checkout():
+    return render_template("check-out.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
