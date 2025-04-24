@@ -20,9 +20,11 @@ pipeline {
             }
         }
 
-        stage('Test Build') {
+        stage('Run Tests') {
             steps {
-                echo "✅ Docker image built successfully. You can add test steps here later."
+                echo '🧪 Running tests in Docker...'
+                // Run tests inside the container
+                sh 'docker run --rm myapp pytest tests/'
             }
         }
 

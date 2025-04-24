@@ -38,6 +38,9 @@ class User(UserMixin):
         self.username = username
         self.email = email
         self.phone = phone
+        from flask import Flask
+
+app = Flask(__name__)
 
 @login_manager.user_loader
 def load_user(user_id):
