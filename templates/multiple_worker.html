@@ -2,40 +2,98 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2 class="text-center mb-4">Available Employees for Selected Tasks</h2>
+    <h2 class="text-center mb-4">Select One Employee Per Task</h2>
 
-    {% if tasks %}
+    <form method="POST" id="selectionForm">
         {% for task in tasks %}
-            <div class="task-container mb-5 border p-4 rounded bg-light">
-                <h3 class="text-center">{{ task }}</h3>
-
-                {% if employees[task] %}
-                    <div class="row">
-                        {% for emp in employees[task] %}
-                            <div class="col-md-4">
-                                <div class="card mb-4 shadow">
-                                    <div class="card-body">
-                                        <h5 class="card-title">{{ emp.name }}</h5>
-                                        <p>Email: {{ emp.email }}</p>
-                                        <p>Phone: {{ emp.phone_number }}</p>
-                                        <p>Gender: {{ emp.gender }}</p>
-                                        <p>Age: {{ emp.age }}</p>
-                                    </div>
+            <div class="task-container mb-4 p-3 border rounded bg-light">
+                <h4 class="mb-3">{{ task }}</h4>
+                <div class="row">
+                    {% for emp in employees[task] %}
+                        <div class="col-md-4">
+                            <label class="employee-option w-100 p-3 border rounded d-block employee-label" 
+                                   data-emp-id="{{ emp.employee_id }}"
+                                   style="cursor: pointer; transition: 0.3s;">
+                                <input type="radio" 
+                                       name="employee_{{ task }}" 
+                                       value="{{ emp.employee_id }}" 
+                                       required hidden>
+                                <div class="employee-content">
+                                    <strong>{{ emp.name }}</strong><br>
+                                    Age: {{ emp.age }}<br>
+                                    Gender: {{ emp.gender }}
                                 </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-center text-danger">No employees available for this task.</p>
-                {% endif %}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
         {% endfor %}
-    {% else %}
-        <p class="text-center text-danger">No tasks selected.</p>
-    {% endif %}
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary mt-3">Confirm Worker</button>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<!-- Optional JavaScript -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const allOptions = document.querySelectorAll(".employee-option");
+
+        // Track selected employee IDs to disable others
+        const selectedEmployeeIds = new Set();
+
+        allOptions.forEach(option => {
+            const input = option.querySelector("input");
+            const empId = option.dataset.empId;
+
+            option.addEventListener("click", () => {
+                if (input.disabled) return;
+
+                input.checked = true;
+
+                // Remove selection styles for same group
+                const groupName = input.name;
+                document.querySelectorAll(`input[name="${groupName}"]`).forEach(inp => {
+                    inp.parentElement.classList.remove("bg-success", "text-white");
+                    inp.parentElement.classList.remove("employee-selected");
+                    selectedEmployeeIds.delete(inp.parentElement.dataset.empId);
+                });
+
+                // Mark this one selected
+                option.classList.add("bg-success", "text-white", "employee-selected");
+                selectedEmployeeIds.add(empId);
+
+                // Disable this employee in other tasks
+                allOptions.forEach(opt => {
+                    const optInput = opt.querySelector("input");
+                    const optEmpId = opt.dataset.empId;
+
+                    if (optEmpId === empId && optInput.name !== groupName) {
+                        optInput.disabled = true;
+                        opt.classList.add("bg-secondary", "text-white", "employee-disabled");
+                        opt.classList.remove("employee-selected");
+                    }
+
+                    // Re-enable other employees not selected
+                    if (!selectedEmployeeIds.has(optEmpId)) {
+                        optInput.disabled = false;
+                        opt.classList.remove("bg-secondary", "text-white", "employee-disabled");
+                    }
+                });
+            });
+        });
+    });
+</script>
+<style>
+    .employee-disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .employee-selected {
+        border: 2px solid #218838 !important;
+    }
+</style>
 {% endblock %}

@@ -210,7 +210,7 @@ def send_email_thread(email, code):
 from flask import jsonify
 
 @app.route('/book_services', methods=['POST'])
-@login_required
+
 def book_services():
     # Get form values
     date_str = request.form['date']
@@ -372,6 +372,22 @@ def available_workers():
 
     return render_template('available_employees.html', employees=available_employees, tasks=selected_tasks)
 
+@app.route('/confirm_worker')
+def confirm_worker():
+    selected_employees = session.get('selected_employees')
+    start_time = session.get('start_time')
+    end_time = session.get('end_time')
+
+    if not selected_employees:
+        flash("No employees selected.")
+        return redirect(url_for('multiple_worker'))
+
+    return render_template('confirm_worker.html',
+                           selected_employees=selected_employees,
+                           start_time=start_time,
+                           end_time=end_time)
+
+
 @app.route('/multiple_worker', methods=['GET', 'POST'])
 def multiple_worker():
     booking_data = session.get('booking_data')
@@ -392,6 +408,29 @@ def multiple_worker():
         flash("Invalid date/time format.")
         return redirect(url_for('home'))
 
+    if request.method == 'POST':
+        selected_employees = {}
+        conn = create_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        for task in selected_tasks:
+            emp_id = request.form.get(f'employee_{task}')
+            if emp_id:
+                cursor.execute("SELECT * FROM Employees WHERE employee_id = %s", (emp_id,))
+                emp = cursor.fetchone()
+                selected_employees[task] = emp
+
+        cursor.close()
+        conn.close()
+
+        # Save to session for use in billing
+        session['selected_employees'] = selected_employees
+        session['start_time'] = start_time_str
+        session['end_time'] = end_time_str
+
+        return redirect(url_for('confirm_worker'))
+
+    # If GET: Fetch available employees
     employees_by_task = {}
     conn = create_connection()
     cursor = conn.cursor(dictionary=True)
@@ -437,6 +476,12 @@ def multiple_worker():
     conn.close()
 
     return render_template('multiple_worker.html', tasks=selected_tasks, employees=employees_by_task)
+
+@app.route('/billing', methods=['POST'])
+def billing():
+    selected_employees = session.get('selected_employees', {})
+    return render_template('bill.html', selected_employees=selected_employees)
+
 
 @app.route('/confirm_single_employee', methods=['POST'])
 def confirm_single_employee():
