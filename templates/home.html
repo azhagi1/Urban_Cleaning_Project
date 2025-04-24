@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>NeatNest - Urban Cleaning</title>
@@ -116,10 +117,16 @@
         <option value="Madurai">
         <option value="Tiruchy">
       </datalist>
-      <a href="{{ url_for('login') }}" class="btn btn-light me-2">Login</a>
-      <a href="{{ url_for('register') }}" class="btn btn-light">Signup</a>
+      {% if current_user.is_authenticated %}
+        <span class="text-warning fw-semibold me-3">Hi, {{ current_user.username }}!</span>
+        <a href="{{ url_for('logout') }}" class="btn btn-light">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-light me-2">Login</a>
+        <a href="{{ url_for('register') }}" class="btn btn-light">Signup</a>
+      {% endif %}
     </div>
   </header>
+  
 
   <!-- Main Content -->
   <div class="main-content container-fluid">
