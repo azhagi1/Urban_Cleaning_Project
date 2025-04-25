@@ -144,7 +144,7 @@
   <header class="text-white p-3 d-flex justify-content-between align-items-center">
     <h3 class="m-0">NeatNest</h3>
     <div>
-      <input class="form-control d-inline w-auto me-2" list="places" placeholder="Choose place">
+      <input id="placeInput" class="form-control d-inline w-auto me-2" list="places" placeholder="Choose place">
       <datalist id="places">
         {% for place in places %}
           <option value="{{ place }}">
@@ -296,17 +296,22 @@
     // Proceed button handler
     document.querySelector('.btn-proceed').addEventListener('click', () => {
       const slot = confirmTime();
+      const place = document.getElementById("placeInput").value;
       if (!slot) return;
  
       if (cartItems.length === 0) {
         alert("Please add at least one service to your cart.");
         return;
       }
- 
+      
+      if (!place) {
+        alert("Please select a place.");
+        return;
+      }
       // Save data to localStorage
       localStorage.setItem('cart', JSON.stringify(cartItems));
       localStorage.setItem('slot', JSON.stringify(slot));
- 
+      localStorage.setItem('place', place);
       // Redirect
       window.location.href = '/check-out';
     });
