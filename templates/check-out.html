@@ -89,7 +89,7 @@
       </div>
       <p class="mt-2"><em>100% of the tip goes to the professional.</em></p>
       <h5 class="mt-4">Amount to Pay: ₹<span id="final-pay">0</span></h5>
-      <button id="pay-btn" class="btn btn-success w-100 mt-3" disabled>Pay Now</button> <!-- ✅ Disabled by default -->
+      <button id="pay-btn" class="btn btn-success w-100 mt-3" disabled onclick="proceedToConfirmation()">Pay Now</button> <!-- ✅ Disabled by default -->
     </div>
   </div>
 </div>
@@ -97,6 +97,7 @@
 <!-- Script -->
 <script>
   let cartItems = JSON.parse(localStorage.getItem('cart')) || [];
+  const slot = JSON.parse(localStorage.getItem('slot')) || {};
   let tipAmount = 0;
 
   function loadCart() {
@@ -146,6 +147,26 @@
   }
 
   window.onload = loadCart;
+
+  function proceedToConfirmation() {
+    const total = parseInt(document.getElementById("item-total").innerText);
+    const taxes = parseInt(document.getElementById("taxes").innerText);
+    const advance = parseInt(document.getElementById("advance").innerText);
+    const postPay = parseInt(document.getElementById("post-payment").innerText);
+    const finalPay = parseInt(document.getElementById("final-pay").innerText);
+
+    const paymentSummary = {
+      itemTotal: total,
+      taxes: taxes,
+      advance: advance,
+      postPay: postPay,
+      tip: tipAmount,
+      finalPay: finalPay
+    };
+
+    localStorage.setItem('paymentSummary', JSON.stringify(paymentSummary));
+    window.location.href = '/confirmation'; // Redirect to confirmation page
+  }
 </script>
 
 </body>

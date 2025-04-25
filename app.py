@@ -262,5 +262,9 @@ def reset_password(token):
 def checkout():
     return render_template("check-out.html")
 
+@app.route('/confirmation')
+def confirmation():
+    return render_template('confirmation.html')
+
 if __name__ == '__main__':
     app.run(debug=True)
