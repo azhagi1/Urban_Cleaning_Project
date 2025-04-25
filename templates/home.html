@@ -150,7 +150,8 @@
           <option value="{{ place }}">
         {% endfor %}
       </datalist>
-    
+      <a href="{{ url_for('history') }}" class="btn btn-black me-2">History</a>
+
       {% if current_user.is_authenticated %}
         <span class="text-warning fw-semibold me-3">Hi, {{ current_user.username }}!</span>
         <a href="{{ url_for('logout') }}" class="btn btn-light">Logout</a>

@@ -99,6 +99,56 @@ def login():
 
 verification_codes = {}  # Format: { email: {"code": ..., "expires_at": ...} }
 
+@app.route('/history')
+@login_required
+def history():
+    conn = create_connection()
+    cur = conn.cursor(dictionary=True)
+
+    # 1. Fetch all blocked slots for this user
+    cur.execute("""
+        SELECT bs.blocked_id, bs.date, bs.time_slot, p.place_name
+        FROM blocked_slots bs
+        JOIN Users u ON bs.user_id = u.user_id
+        LEFT JOIN Employees e ON e.employee_id IN (
+            SELECT employee_id FROM blocked_employee WHERE blocked_id = bs.blocked_id
+        )
+        LEFT JOIN places p ON e.place_id = p.place_id
+        WHERE bs.user_id = %s
+        ORDER BY bs.date DESC, bs.time_slot
+    """, (current_user.id,))
+    slots = cur.fetchall()
+
+    history = []
+
+    for slot in slots:
+        # Get tasks for this slot
+        cur.execute("SELECT task_name FROM blocked_task WHERE blocked_id = %s", (slot['blocked_id'],))
+        tasks = [t['task_name'] for t in cur.fetchall()]
+
+        # Get assigned employee
+        cur.execute("""
+            SELECT e.name FROM Employees e
+            JOIN blocked_employee be ON e.employee_id = be.employee_id
+            WHERE be.blocked_id = %s
+            LIMIT 1
+        """, (slot['blocked_id'],))
+        employee = cur.fetchone()
+        employee_name = employee['name'] if employee else "N/A"
+
+        history.append({
+            'date': slot['date'].strftime('%d-%m-%Y'),
+            'time_slot': slot['time_slot'],
+            'tasks': tasks,
+            'employee_name': employee_name,
+            'place': slot['place_name'] or "N/A"
+        })
+
+    cur.close()
+    conn.close()
+
+    return render_template("history.html", history=history)
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
