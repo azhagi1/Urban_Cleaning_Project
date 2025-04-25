@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
+ 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>NeatNest - Urban Cleaning</title>
@@ -11,30 +11,27 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      background: linear-gradient(135deg, #1c1c1c, #8b6a00);
+      background: linear-gradient(135deg, #e6f0ff, #f0faff);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .btn-proceed {
-      background-color: #28a745;
-      color: #fff;
-      font-weight: 600;
-      border: none;
-      transition: background-color 0.3s ease;
-    }
-    .btn-proceed:hover {
-      background-color: #218838;
-    }
-    .btn-black {
-      background-color: #000;
-      color: #fff;
-      border: none;
-      transition: background-color 0.3s ease;
-    }
-    .btn-black:hover {
-      background-color: #ccc;
       color: #333;
     }
-    
+ 
+    header {
+      background: linear-gradient(to right, #0d63c0, #0ad379);
+    }
+ 
+    header h3 {
+      font-weight: bold;
+      font-style: inherit;
+      color: #070708;
+      
+    }
+ 
+    footer {
+      background-color: #f9f9f9;
+      color: #7d9d9c;
+    }
+ 
     .main-content {
       flex: 1;
       display: flex;
@@ -42,70 +39,106 @@
       padding: 20px;
       gap: 20px;
     }
+ 
+    .border {
+      background:url('static/urban_wash.jpg');      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      color: #5a5a5a;
+    }
+    
+ 
+    h5, h6 {
+      font-weight: 600;
+      color: #0a0b0c;
+    }
+ 
     .service, .sub-service {
       cursor: pointer;
       border: none;
       padding: 15px;
       border-radius: 12px;
       margin-bottom: 12px;
-      background: linear-gradient(145deg, #2d2d2d, #a67c00);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      color: #fff;
+      background: linear-gradient(145deg, #d9f0ff81, #eaf6f696);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      color: #333;
       transition: all 0.3s ease-in-out;
     }
+ 
     .service:hover, .sub-service:hover {
-      background: linear-gradient(145deg, #a67c00, #2d2d2d);
+      background: linear-gradient(145deg, #e0f7ff, #f7fdfd);
       transform: translateY(-2px);
     }
-    .cart-item {
-      border-bottom: 1px solid #ccc;
-      padding: 5px 0;
-    }
-    header {
-      background: linear-gradient(90deg, #000000, #8b6a00);
-    }
-    header h3 {
+ 
+    .btn-proceed {
+      background: linear-gradient(to right, rgb(28, 189, 28));
+      color: white;
       font-weight: bold;
-    }
-    footer {
-      background-color: #f4f4f4c5;
-      color: #ecc154f3;
-    }
-    .btn-success {
-      background: linear-gradient(145deg, #000000, #434343);
       border: none;
-      color: #f0d98c;
     }
-    .btn-success:hover {
-      background: linear-gradient(145deg, #434343, #000000);
+ 
+    .btn-proceed:hover {
+      background: linear-gradient(to right, darkgreen);
+      color:white;
     }
-    h5, h6 {
-      font-weight: 600;
-      color: #f0d98c;
-    }
-    .border {
-      background-color: #1c1c1c;
-      border-radius: 12px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-      color: #f0d98c;
-    }
-    .btn-light {
-      background-color: #f0d98c;
+ 
+    .btn-black {
+      background-color: #041a8ae7;
+      color: #fff;
       border: none;
-      color: #1c1c1c;
     }
-    .btn-light:hover {
-      background-color: #e6c556;
+ 
+    .btn-black:hover {
+      background-color: #b2dfdb;
+      color: #333;
     }
+ 
     .btn-black:disabled {
-      background-color: #ccc !important;
-      color: #666 !important;
+      background-color: #e0e0e0 !important;
+      color: #aaa !important;
       cursor: not-allowed;
       opacity: 0.8;
     }
+ 
+    .btn-light {
+      background-color: #eae7e4;
+      color: #333;
+      border: none;
+    }
+ 
+    .btn-light:hover {
+      background-color: #ffe4a1;
+    }
+ 
+    .btn-outline-danger {
+      border-color: #ff6f61;
+      color: #ff6f61;
+    }
+ 
+    .btn-outline-danger:hover {
+      background-color: #ff6f61;
+      color: #fff;
+    }
+ 
+    .form-control, .form-select {
+      background-color: #ffffff;
+      color: #161515;
+      border: 1px solid #cce0ff;
+      box-shadow: none;
+    }
+ 
+    .form-control:focus, .form-select:focus {
+      outline: none;
+      box-shadow: 0 0 6px 2px #a3d5ff;
+    }
+ 
+    #selected-slot {
+      color: #010805;
+    }
   </style>
+ 
+ 
 </head>
-
+ 
 <body>
   <!-- Header -->
   <header class="text-white p-3 d-flex justify-content-between align-items-center">
@@ -117,8 +150,7 @@
           <option value="{{ place }}">
         {% endfor %}
       </datalist>
-      
-      
+    
       {% if current_user.is_authenticated %}
         <span class="text-warning fw-semibold me-3">Hi, {{ current_user.username }}!</span>
         <a href="{{ url_for('logout') }}" class="btn btn-light">Logout</a>
@@ -128,8 +160,8 @@
       {% endif %}
     </div>
   </header>
-  
-
+ 
+ 
   <!-- Main Content -->
   <div class="main-content container-fluid">
     <!-- Services List -->
@@ -139,13 +171,13 @@
       <div class="service" onclick="filterSubServices('floor')">Floor Cleaning</div>
       <div class="service" onclick="filterSubServices('kitchen')">Kitchen Cleaning</div>
     </div>
-
+ 
     <!-- Sub Services List -->
     <div class="col-6 border p-3">
       <h5>Sub-Services</h5>
       <div id="sub-services"></div>
     </div>
-
+ 
     <!-- Cart -->
     <div class="col-3 border p-3">
       <h6>Select Date and Time</h6>
@@ -166,13 +198,13 @@
       <button class="btn btn-proceed w-100 mt-3">Proceed</button>
     </div>
   </div>
-
+ 
   <!-- Footer -->
   <footer class="text-center text-muted p-3">
     <p>NeatNest &copy; 2025 | Urban Cleaning Made Easy</p>
     <small>Contact us at: support@neatnest.com</small>
   </footer>
-
+ 
   <!-- Script -->
   <script>
     const subServiceData = {
@@ -195,11 +227,11 @@
         { name: "Sink & Drain Cleaning", desc: "Descaling and unclogging drains and pipes.", price: 500 }
       ]
     };
-  
+ 
     let total = 0;
     const addedItems = new Set();
     const cartItems = [];
-  
+ 
     function filterSubServices(serviceKey) {
       const container = document.getElementById("sub-services");
       container.innerHTML = "";
@@ -215,7 +247,7 @@
         container.appendChild(div);
       });
     }
-  
+ 
     function addToCart(name, price) {
       if (addedItems.has(name)) return;
       const cart = document.getElementById("cart");
@@ -234,7 +266,7 @@
       const btn = document.getElementById(`add-${name}`);
       if (btn) btn.disabled = true;
     }
-  
+ 
     function removeFromCart(name, price) {
       const item = document.getElementById(`cart-${name}`);
       if (item) item.remove();
@@ -246,7 +278,7 @@
       const btn = document.getElementById(`add-${name}`);
       if (btn) btn.disabled = false;
     }
-  
+ 
     function confirmTime() {
       const date = document.getElementById("dateInput").value;
       const time = document.getElementById("timeInput").value;
@@ -260,28 +292,29 @@
         return null;
       }
     }
-  
+ 
     // Proceed button handler
     document.querySelector('.btn-proceed').addEventListener('click', () => {
       const slot = confirmTime();
       if (!slot) return;
-  
+ 
       if (cartItems.length === 0) {
         alert("Please add at least one service to your cart.");
         return;
       }
-  
+ 
       // Save data to localStorage
       localStorage.setItem('cart', JSON.stringify(cartItems));
       localStorage.setItem('slot', JSON.stringify(slot));
-  
+ 
       // Redirect
       window.location.href = '/check-out';
     });
-  
+ 
     window.onload = () => filterSubServices('ac');
   </script>
   <!-- Bootstrap JS (optional) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+ 
