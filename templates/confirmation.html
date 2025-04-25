@@ -57,7 +57,7 @@
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const slot = JSON.parse(localStorage.getItem('slot')) || {};
     const payment = JSON.parse(localStorage.getItem('paymentSummary')) || {};
-
+    const place = localStorage.getItem('place') || "Not specified";
     const cartEl = document.getElementById("cart-summary");
     const slotEl = document.getElementById("slot-summary");
     const paymentEl = document.getElementById("payment-summary");
@@ -69,7 +69,7 @@
     slotEl.innerHTML = Object.keys(slot).length
       ? `<p><strong>Date:</strong> ${slot.date}</p>
          <p><strong>Time:</strong> ${slot.time}</p>
-         <p><strong>Location:</strong> ${slot.location}</p>`
+         <p><strong>Location:</strong> ${place}</p>`
       : "<p>No slot information available.</p>";
 
     paymentEl.innerHTML = payment.itemTotal !== undefined
