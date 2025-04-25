@@ -56,10 +56,20 @@ def send_email_in_background(email, code):
 
 from datetime import date
 
+def get_places():
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT place_name FROM places")
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [row[0] for row in results]
+
 @app.route('/')
 def home():
+    places = get_places()
     today = date.today().strftime('%Y-%m-%d')
-    return render_template('home.html')
+    return render_template('home.html',places=places, today=today)
 
 
 @app.route('/login', methods=['GET', 'POST'])
