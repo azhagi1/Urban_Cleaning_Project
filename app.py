@@ -6,7 +6,7 @@ from email_utils import generate_code, send_verification_code, send_reset_link
 import threading
 from datetime import datetime
 from itsdangerous import URLSafeTimedSerializer
-
+from flask import request, jsonify
 
 
 def generate_reset_token(email):
@@ -257,6 +257,66 @@ def reset_password(token):
         return redirect(url_for('login'))
 
     return render_template('reset_password_token.html', email=email)
+
+from datetime import datetime
+
+@app.route('/check-availability', methods=['POST'])
+def check_availability():
+    try:
+        data = request.get_json()
+        input_date = data.get('date')  # e.g., '25/04/2025'
+        time_slot = data.get('time')
+        cart_count = int(data.get('cart_count', 0))
+
+        if not input_date or not time_slot or cart_count == 0:
+            return jsonify({'status': 'error', 'message': 'Missing date, time, or cart items.'}), 400
+
+        # 🔄 Convert 'DD/MM/YYYY' → 'YYYY-MM-DD'
+        try:
+            formatted_date = datetime.strptime(input_date, '%d/%m/%Y').strftime('%Y-%m-%d')
+        except ValueError:
+            return jsonify({'status': 'error', 'message': 'Invalid date format. Use DD/MM/YYYY.'}), 400
+
+        # Determine the required number of employees
+        if cart_count <= 4:
+            min_required = 1
+        elif cart_count <= 8:
+            min_required = 2
+        elif cart_count <= 12:
+            min_required = 3
+        else:
+            return jsonify({'status': 'error', 'message': 'Too many cart items selected.'}), 400
+
+        conn = create_connection()
+        cursor = conn.cursor()
+
+        # Step 1: Total employees
+        cursor.execute("SELECT COUNT(*) FROM Employees")
+        total_employees = cursor.fetchone()[0]
+
+        # Step 2: Blocked employees for that date/time
+        cursor.execute("""
+            SELECT COUNT(DISTINCT be.employee_id)
+            FROM blocked_employee AS be
+            JOIN blocked_slots AS bs ON be.blocked_id = bs.blocked_id
+            WHERE bs.date = %s AND bs.time_slot = %s
+        """, (formatted_date, time_slot))
+        blocked_employees = cursor.fetchone()[0]
+
+        available_employees = total_employees - blocked_employees
+
+        if available_employees >= min_required:
+            return jsonify({'status': 'success', 'message': 'Enough employees are available for your selected slot.'})
+        else:
+            return jsonify({
+                'status': 'fail',
+                'message': f'Only {available_employees} employees available on {input_date} at {time_slot}. Required: {min_required}. Please select a new time slot.'
+            })
+
+    except Exception as e:
+        print("Availability check error:", e)
+        return jsonify({'status': 'error', 'message': 'Server error occurred. Please try again.'}), 500
+
 
 @app.route("/check-out")
 def checkout():

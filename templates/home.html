@@ -312,8 +312,38 @@
       localStorage.setItem('cart', JSON.stringify(cartItems));
       localStorage.setItem('slot', JSON.stringify(slot));
       localStorage.setItem('place', place);
+      const date = JSON.parse(localStorage.getItem('slot')).date;
+      const time = JSON.parse(localStorage.getItem('slot')).time;
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const cartCount = cart.length;
+      fetch('/check-availability', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                date: date,
+                time: time,
+                cart_count: cartCount
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log(data);
+            if (data.status === 'success') {
+                // Proceed to next page
+                alert(data.message);
+                window.location.href = "/check-out";
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Error checking availability. Try again.");
+        });
       // Redirect
-      window.location.href = '/check-out';
+      //window.location.href = '/check-out';
     });
  
     window.onload = () => filterSubServices('ac');
