@@ -60,89 +60,94 @@
   </header>
 
   <!-- Main Content -->
-  <div class="container-flex">
-    <!-- Cart Details -->
-    <div class="card-box">
-      <h5>Your Cart</h5>
-      <div id="cart-details">
-        <!-- Example Item -->
-        <!-- Filled dynamically -->
-      </div>
+<div class="container-flex">
+  <!-- Cart Details -->
+  <div class="card-box">
+    <h5>Your Cart</h5>
+    <div id="cart-details">
+      <!-- Filled dynamically -->
     </div>
-
-    <!-- Payment Details -->
-    <div class="card-box">
-      <h5>Payment Summary</h5>
-      <div>
-        <p>Item Total: ₹<span id="item-total">0</span></p>
-        <p>Taxes & Fees: ₹<span id="taxes">0</span></p>
-        <p>Total Amount: ₹<span id="total-amount">0</span></p>
-        <p>Advance Payment: ₹<span id="advance">0</span></p>
-        <p>Payable After Service: ₹<span id="post-payment">0</span></p>
-        <hr>
-        <p>Add a tip to thank the Professional:</p>
-        <div>
-          <button class="btn btn-outline-warning tip-btn" onclick="addTip(50)">₹50</button>
-          <button class="btn btn-outline-warning tip-btn" onclick="addTip(75)">₹75</button>
-          <button class="btn btn-outline-warning tip-btn" onclick="addTip(100)">₹100</button>
-        </div>
-        <p class="mt-2"><em>100% of the tip goes to the professional.</em></p>
-        <h5 class="mt-4">Amount to Pay: ₹<span id="final-pay">0</span></h5>
-        <button class="btn btn-success w-100 mt-3">Pay Now</button>
-      </div>
-    </div>
+    <!-- Back to Home Button -->
+    <a href="/" class="btn btn-primary mt-3">Back to Home</a> <!-- ✅ Added Home Button -->
   </div>
 
-  <!-- Footer -->
-  <footer>
-    NeatNest &copy; 2025 | Making Urban Cleaning Seamless
-  </footer>
+  <!-- Payment Details -->
+  <div class="card-box">
+    <h5>Payment Summary</h5>
+    <div>
+      <p>Item Total: ₹<span id="item-total">0</span></p>
+      <p>Taxes & Fees: ₹<span id="taxes">0</span></p>
+      <p>Total Amount: ₹<span id="total-amount">0</span></p>
+      <p>Advance Payment: ₹<span id="advance">0</span></p>
+      <p>Payable After Service: ₹<span id="post-payment">0</span></p>
+      <hr>
+      <p>Add a tip to thank the Professional:</p>
+      <div>
+        <button class="btn btn-outline-warning tip-btn" onclick="addTip(50)">₹50</button>
+        <button class="btn btn-outline-warning tip-btn" onclick="addTip(75)">₹75</button>
+        <button class="btn btn-outline-warning tip-btn" onclick="addTip(100)">₹100</button>
+      </div>
+      <p class="mt-2"><em>100% of the tip goes to the professional.</em></p>
+      <h5 class="mt-4">Amount to Pay: ₹<span id="final-pay">0</span></h5>
+      <button id="pay-btn" class="btn btn-success w-100 mt-3" disabled>Pay Now</button> <!-- ✅ Disabled by default -->
+    </div>
+  </div>
+</div>
 
-  <!-- Script -->
-  <script>
-    let cartItems = JSON.parse(localStorage.getItem('cart')) || [];
-    let tipAmount = 0;
+<!-- Script -->
+<script>
+  let cartItems = JSON.parse(localStorage.getItem('cart')) || [];
+  let tipAmount = 0;
 
-    function loadCart() {
-      const cartEl = document.getElementById("cart-details");
-      cartEl.innerHTML = '';
-      let total = 0;
+  function loadCart() {
+    const cartEl = document.getElementById("cart-details");
+    const payBtn = document.getElementById("pay-btn"); // ✅ Get Pay button
+    cartEl.innerHTML = '';
+    let total = 0;
 
-      cartItems.forEach((item, i) => {
-        total += item.price;
-        const div = document.createElement('div');
-        div.innerHTML = `
-          ${item.name} - ₹${item.price}
-          <span class="btn-remove" onclick="removeItem(${i})">&times;</span>
-        `;
-        cartEl.appendChild(div);
-      });
-
-      const taxes = Math.round(total * 0.12);
-      const advance = Math.round(total * 0.3);
-      const postPay = total + taxes - advance;
-
-      document.getElementById("item-total").innerText = total;
-      document.getElementById("taxes").innerText = taxes;
-      document.getElementById("total-amount").innerText = total + taxes;
-      document.getElementById("advance").innerText = advance;
-      document.getElementById("post-payment").innerText = postPay;
-      document.getElementById("final-pay").innerText = advance + tipAmount;
+    if (cartItems.length === 0) {
+      payBtn.disabled = true; // ✅ Disable when empty
+      cartEl.innerHTML = '<p>Your cart is empty.</p>';
+    } else {
+      payBtn.disabled = false; // ✅ Enable if cart has items
     }
 
-    function removeItem(index) {
-      cartItems.splice(index, 1);
-      localStorage.setItem('cart', JSON.stringify(cartItems));
-      loadCart();
-    }
+    cartItems.forEach((item, i) => {
+      total += item.price;
+      const div = document.createElement('div');
+      div.innerHTML = `
+        ${item.name} - ₹${item.price}
+        <span class="btn-remove" onclick="removeItem(${i})">&times;</span>
+      `;
+      cartEl.appendChild(div);
+    });
 
-    function addTip(amount) {
-      tipAmount = amount;
-      loadCart();
-    }
+    const taxes = Math.round(total * 0.12);
+    const advance = Math.round(total * 0.3);
+    const postPay = total + taxes - advance;
 
-    window.onload = loadCart;
-  </script>
+    document.getElementById("item-total").innerText = total;
+    document.getElementById("taxes").innerText = taxes;
+    document.getElementById("total-amount").innerText = total + taxes;
+    document.getElementById("advance").innerText = advance;
+    document.getElementById("post-payment").innerText = postPay;
+    document.getElementById("final-pay").innerText = advance + tipAmount;
+  }
+
+  function removeItem(index) {
+    cartItems.splice(index, 1);
+    localStorage.setItem('cart', JSON.stringify(cartItems));
+    loadCart();
+  }
+
+  function addTip(amount) {
+    tipAmount = amount;
+    loadCart();
+  }
+
+  window.onload = loadCart;
+</script>
+
 
 </body>
 </html>
