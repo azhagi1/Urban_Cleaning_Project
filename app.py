@@ -88,6 +88,8 @@ def login():
         
             if user['is_verified']:
                 login_user(User(user['user_id'], user['name'], email, user['phone_number']))
+                session['user_id'] = user['user_id']
+                session['username'] = user['name']
                 flash("Login successful.")
                 return redirect(url_for('home'))
             else:
@@ -137,12 +139,13 @@ def history():
         employee_name = employee['name'] if employee else "N/A"
 
         history.append({
-            'date': slot['date'].strftime('%d-%m-%Y'),
+            'date': slot['date'].strftime('%d-%m-%Y') if slot['date'] else "N/A",
             'time_slot': slot['time_slot'],
             'tasks': tasks,
             'employee_name': employee_name,
             'place': slot['place_name'] or "N/A"
         })
+
 
     cur.close()
     conn.close()
@@ -375,6 +378,96 @@ def checkout():
 @app.route('/confirmation')
 def confirmation():
     return render_template('confirmation.html')
+
+from flask import Flask, request, jsonify, session, redirect, url_for
+from flask_login import current_user, login_required
+import mysql.connector
+from datetime import datetime
+
+
+@app.route('/confirm-booking', methods=['POST'])
+@login_required
+def confirm_booking():
+    try:
+        data = request.get_json()
+        payment_summary = data.get('paymentSummary')
+        cart_items = data.get('cartItems')
+        date = data.get('date')
+        time = data.get('time')
+
+        user_id = current_user.id  # Get the logged-in user's ID
+
+        # Step 1: Insert into blocked_slots table
+        conn = create_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO blocked_slots (user_id, date, time_slot)
+            VALUES (%s, %s, %s)
+        """, (user_id, date, time))
+        conn.commit()
+
+        # Get the inserted booked slot ID
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        booked_id = cursor.fetchone()[0]
+
+        # Step 2: Insert into blocked_tasks table for each cart item
+        for item in cart_items:
+            cursor.execute("""
+                INSERT INTO blocked_task (blocked_id, task_name)
+                VALUES (%s, %s)
+            """, (booked_id, item['name']))
+
+        # Step 3: Determine the minimum number of employees required
+        cart_count = len(cart_items)
+        if cart_count <= 4:
+            min_required = 1
+        elif cart_count <= 8:
+            min_required = 2
+        elif cart_count <= 12:
+            min_required = 3
+        else:
+            return jsonify({'status': 'error', 'message': 'Too many cart items selected.'}), 400
+        
+        # Step 4: Retrieve available employees for the selected date and time
+        formatted_date = datetime.strptime(date, '%d/%m/%Y').strftime('%Y-%m-%d')
+
+        cursor.execute("""
+            SELECT employee_id
+            FROM Employees
+            WHERE employee_id NOT IN (
+                SELECT DISTINCT be.employee_id
+                FROM blocked_employee AS be
+                JOIN blocked_slots AS bs ON be.blocked_id = bs.blocked_id
+                WHERE bs.date = %s AND bs.time_slot = %s
+            )
+        """, (formatted_date, time))
+
+        available_employees = cursor.fetchall()
+
+        if len(available_employees) < min_required:
+            return jsonify({
+                'status': 'error',
+                'message': f'Not enough available employees for the selected slot. Available: {len(available_employees)}, Required: {min_required}.'
+            }), 400
+
+        # Step 5: Insert into blocked_employees table
+        for i in range(min_required):
+            cursor.execute("""
+                INSERT INTO blocked_employee (blocked_id, employee_id)
+                VALUES (%s, %s)
+            """, (booked_id, available_employees[i][0]))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'status': 'success', 'message': 'Booking confirmed successfully!'})
+
+    except Exception as e:
+        print(f"Error during booking: {e}")
+        return jsonify({'status': 'error', 'message': 'Server error occurred. Please try again.'}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)

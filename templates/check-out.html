@@ -12,7 +12,6 @@
       background-image: url("static/urban_wash.jpg");
     }
     
-    
     header {
       background: linear-gradient(to right, #0d63c0, #0ad379);
       color: black;
@@ -164,9 +163,36 @@
       finalPay: finalPay
     };
 
+    // Save payment details to localStorage
     localStorage.setItem('paymentSummary', JSON.stringify(paymentSummary));
-    window.location.href = '/confirmation'; // Redirect to confirmation page
-  }
+
+    // Send data to the server to insert into the database
+   // Send data to the server to insert into the database
+   fetch('/confirm-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentSummary: paymentSummary,
+          cartItems: cartItems,
+          date: slot.date,
+          time: slot.time,
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          window.location.href = '/confirmation'; // Proceed to confirmation page
+        } else {
+          alert(data.message);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error during booking. Please try again.");
+      });
+    }
 </script>
 
 </body>
