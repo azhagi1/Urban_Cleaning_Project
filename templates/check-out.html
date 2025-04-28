@@ -147,60 +147,109 @@
 
   window.onload = loadCart;
 
-  
-    function proceedToConfirmation() {
-  // Check if user is logged in
-  const isLoggedIn = localStorage.getItem('userLoggedIn'); // or use your session/cookie logic
+  function proceedToConfirmation() {
+    const isLoggedIn = localStorage.getItem('userLoggedIn'); // or use your session/cookie logic
 
-  if (!isLoggedIn) {
-    // Not logged in, redirect to login page
-    window.location.href = "/login"; 
-    return;
-  }
-
-  // If logged in, continue payment flow
-  const total = parseInt(document.getElementById("item-total").innerText);
-  const taxes = parseInt(document.getElementById("taxes").innerText);
-  const advance = parseInt(document.getElementById("advance").innerText);
-  const postPay = parseInt(document.getElementById("post-payment").innerText);
-  const finalPay = parseInt(document.getElementById("final-pay").innerText);
-
-  const paymentSummary = {
-    itemTotal: total,
-    taxes: taxes,
-    advance: advance,
-    postPay: postPay,
-    tip: tipAmount,
-    finalPay: finalPay
-  };
-
-  fetch('/confirm-booking', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        paymentSummary: paymentSummary,
-        cartItems: cartItems,
-        date: slot.date,
-        time: slot.time,
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.status === 'success') {
-        window.location.href = '/confirmation'; 
-      } else {
-        alert(data.message);
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Error during booking. Please try again.");
-    });
+if (!isLoggedIn) {
+  // Not logged in, redirect to login page
+  window.location.href = "/login"; 
+  return;
 }
 
+// If logged in, continue payment flow
+const total = parseInt(document.getElementById("item-total").innerText);
+const taxes = parseInt(document.getElementById("taxes").innerText);
+const advance = parseInt(document.getElementById("advance").innerText);
+const postPay = parseInt(document.getElementById("post-payment").innerText);
+const finalPay = parseInt(document.getElementById("final-pay").innerText);
+
+const paymentSummary = {
+  itemTotal: total,
+  taxes: taxes,
+  advance: advance,
+  postPay: postPay,
+  tip: tipAmount,
+  finalPay: finalPay
+};
+
+fetch('/confirm-booking', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      paymentSummary: paymentSummary,
+      cartItems: cartItems,
+      date: slot.date,
+      time: slot.time,
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'success') {
+      window.location.href = '/confirmation'; 
+    } else {
+      alert(data.message);
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Error during booking. Please try again.");
+  });
+}
+
+
+</script>
+<script>
+  const isLoggedIn = "{{ 'true' if current_user.is_authenticated else 'false' }}";
+  
+  function proceedToConfirmation() {
+    if (isLoggedIn !== 'true') {
+        window.location.href = "/login?next=checkout";  // ✅ Pass 'next' parameter
+        return;
+    }
     
+    // ✅ your existing payment code
+    const total = parseInt(document.getElementById("item-total").innerText);
+    const taxes = parseInt(document.getElementById("taxes").innerText);
+    const advance = parseInt(document.getElementById("advance").innerText);
+    const postPay = parseInt(document.getElementById("post-payment").innerText);
+    const finalPay = parseInt(document.getElementById("final-pay").innerText);
+
+    const paymentSummary = {
+      itemTotal: total,
+      taxes: taxes,
+      advance: advance,
+      postPay: postPay,
+      tip: tipAmount,
+      finalPay: finalPay
+    };
+
+    fetch('/confirm-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentSummary: paymentSummary,
+          cartItems: cartItems,
+          date: slot.date,
+          time: slot.time,
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          window.location.href = '/confirmation'; 
+        } else {
+          alert(data.message);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error during booking. Please try again.");
+      });
+  }
 </script>
 
 </body>
