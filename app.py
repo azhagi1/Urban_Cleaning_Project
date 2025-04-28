@@ -77,29 +77,39 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+
         conn = create_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
         user = cursor.fetchone()
         cursor.close()
         conn.close()
-        print(user)
+
         if user and check_password_hash(user['password'], password):
-        
             if user['is_verified']:
                 login_user(User(user['user_id'], user['name'], email, user['phone_number']))
                 session['user_id'] = user['user_id']
                 session['username'] = user['name']
+
+                # 👇 Check if redirectAfterLogin is set
+                if session.get('redirectAfterLogin') == 'checkout':
+                    session.pop('redirectAfterLogin')  # Remove after use
+                    return redirect(url_for('checkout'))
+
                 flash("Login successful.")
                 return redirect(url_for('home'))
             else:
-                flash("Please verify your email.")
+                flash("Please verify your email first.")
         else:
-            flash("Invalid credentials.")
-        flash("Login successful.") 
+            flash("Invalid email or password.")
+
+    # Before showing login page, check if we came because of redirect
+    if request.args.get('next') == 'checkout':
+        session['redirectAfterLogin'] = 'checkout'
+
     return render_template('login.html')
 
-verification_codes = {}  # Format: { email: {"code": ..., "expires_at": ...} }
+
 
 @app.route('/history')
 @login_required
