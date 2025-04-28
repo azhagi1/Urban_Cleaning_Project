@@ -147,52 +147,60 @@
 
   window.onload = loadCart;
 
-  function proceedToConfirmation() {
-    const total = parseInt(document.getElementById("item-total").innerText);
-    const taxes = parseInt(document.getElementById("taxes").innerText);
-    const advance = parseInt(document.getElementById("advance").innerText);
-    const postPay = parseInt(document.getElementById("post-payment").innerText);
-    const finalPay = parseInt(document.getElementById("final-pay").innerText);
+  
+    function proceedToConfirmation() {
+  // Check if user is logged in
+  const isLoggedIn = localStorage.getItem('userLoggedIn'); // or use your session/cookie logic
 
-    const paymentSummary = {
-      itemTotal: total,
-      taxes: taxes,
-      advance: advance,
-      postPay: postPay,
-      tip: tipAmount,
-      finalPay: finalPay
-    };
+  if (!isLoggedIn) {
+    // Not logged in, redirect to login page
+    window.location.href = "/login"; 
+    return;
+  }
 
-    // Save payment details to localStorage
-    localStorage.setItem('paymentSummary', JSON.stringify(paymentSummary));
+  // If logged in, continue payment flow
+  const total = parseInt(document.getElementById("item-total").innerText);
+  const taxes = parseInt(document.getElementById("taxes").innerText);
+  const advance = parseInt(document.getElementById("advance").innerText);
+  const postPay = parseInt(document.getElementById("post-payment").innerText);
+  const finalPay = parseInt(document.getElementById("final-pay").innerText);
 
-    // Send data to the server to insert into the database
-   // Send data to the server to insert into the database
-   fetch('/confirm-booking', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paymentSummary: paymentSummary,
-          cartItems: cartItems,
-          date: slot.date,
-          time: slot.time,
-        })
+  const paymentSummary = {
+    itemTotal: total,
+    taxes: taxes,
+    advance: advance,
+    postPay: postPay,
+    tip: tipAmount,
+    finalPay: finalPay
+  };
+
+  fetch('/confirm-booking', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        paymentSummary: paymentSummary,
+        cartItems: cartItems,
+        date: slot.date,
+        time: slot.time,
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success') {
-          window.location.href = '/confirmation'; // Proceed to confirmation page
-        } else {
-          alert(data.message);
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Error during booking. Please try again.");
-      });
-    }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success') {
+        window.location.href = '/confirmation'; 
+      } else {
+        alert(data.message);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Error during booking. Please try again.");
+    });
+}
+
+    
 </script>
 
 </body>

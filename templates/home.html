@@ -183,7 +183,7 @@
     <div class="col-3 border p-3">
       <h6>Select Date and Time</h6>
       <input type="date" id="dateInput" class="form-control mb-2" min="{{ today }}">
-      <select id="timeInput" class="form-select mb-2">
+        <select id="timeInput" class="form-select mb-2" disabled>
         <option value="">-- Choose Time Slot --</option>
         <option value="8:00 AM - 10:00 AM">8:00 AM - 10:00 AM</option>
         <option value="10:00 AM - 12:00 PM">10:00 AM - 12:00 PM</option>
@@ -293,61 +293,186 @@
         return null;
       }
     }
- 
-    // Proceed button handler
-    document.querySelector('.btn-proceed').addEventListener('click', () => {
-      const slot = confirmTime();
-      const place = document.getElementById("placeInput").value;
-      if (!slot) return;
- 
-      if (cartItems.length === 0) {
-        alert("Please add at least one service to your cart.");
-        return;
+    function updateTimeSlots() {
+    const dateInput = document.getElementById("dateInput").value;
+    const timeInput = document.getElementById("timeInput");
+    const now = new Date();
+    const selectedDate = new Date(dateInput);
+
+    // Only apply restrictions if selected date is today
+    if (now.toDateString() === selectedDate.toDateString()) {
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentTotalMinutes = currentHour * 60 + currentMinutes;
+
+      // Time slot ranges in minutes
+      const slotTimings = {
+        "8:00 AM - 10:00 AM": { start: 8 * 60, end: 10 * 60 },
+        "10:00 AM - 12:00 PM": { start: 10 * 60, end: 12 * 60 },
+        "12:00 PM - 2:00 PM": { start: 12 * 60, end: 14 * 60 },
+        "2:00 PM - 4:00 PM": { start: 14 * 60, end: 16 * 60 },
+        "4:00 PM - 6:00 PM": { start: 16 * 60, end: 18 * 60 }
+      };
+
+      // Loop through options and disable past ones
+      for (let option of timeInput.options) {
+        const slot = option.value;
+        if (slotTimings[slot]) {
+          if (slotTimings[slot].end <= currentTotalMinutes) {
+            option.disabled = true;
+            option.style.color = "gray";
+          } else {
+            option.disabled = false;
+            option.style.color = "black";
+          }
+        }
       }
-      
-      if (!place) {
-        alert("Please select a place.");
-        return;
+    } else {
+      // If future date, enable all
+      for (let option of timeInput.options) {
+        option.disabled = false;
+        option.style.color = "black";
       }
-      // Save data to localStorage
-      localStorage.setItem('cart', JSON.stringify(cartItems));
-      localStorage.setItem('slot', JSON.stringify(slot));
-      localStorage.setItem('place', place);
-      const date = JSON.parse(localStorage.getItem('slot')).date;
-      const time = JSON.parse(localStorage.getItem('slot')).time;
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
-      const cartCount = cart.length;
-      fetch('/check-availability', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                date: date,
-                time: time,
-                cart_count: cartCount
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            console.log(data);
-            if (data.status === 'success') {
-                // Proceed to next page
-                alert(data.message);
-                window.location.href = "/check-out";
-            } else {
-                alert(data.message);
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Error checking availability. Try again.");
-        });
-      // Redirect
-      //window.location.href = '/check-out';
+    }
+  }
+  function confirmTime() {
+    const date = document.getElementById("dateInput").value;
+    const time = document.getElementById("timeInput").value;
+    const display = document.getElementById("selected-slot");
+    if (date && time) {
+      const formatted = new Date(date).toLocaleDateString("en-GB");
+      display.innerText = `Selected Slot: ${formatted}, ${time}`;
+      return { date: formatted, time };
+    } else {
+      display.innerText = "Please select both date and time.";
+      return null;
+    }
+  }
+
+  function disablePastTimeSlots() {
+    const dateInput = document.getElementById("dateInput");
+    const timeInput = document.getElementById("timeInput");
+    const selectedDate = new Date(dateInput.value);
+    const today = new Date();
+
+    // If selected date is today
+    if (
+      selectedDate.getDate() === today.getDate() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getFullYear() === today.getFullYear()
+    ) {
+      const currentHour = today.getHours();
+      const currentMinutes = today.getMinutes();
+
+      // Loop through time slots
+      Array.from(timeInput.options).forEach(option => {
+        const slot = option.value;
+        if (!slot) return; // Skip the placeholder option
+
+        // Get the start hour from the slot (e.g., "8:00 AM - 10:00 AM")
+        const startTimeStr = slot.split('-')[0].trim();
+        const startHour = convertTo24Hour(startTimeStr);
+
+        // Disable if start time is <= current hour
+        if (startHour <= currentHour) {
+          option.disabled = true;
+          option.style.color = "#ccc";
+        } else {
+          option.disabled = false;
+          option.style.color = "";
+        }
+      });
+    } else {
+      // If not today, enable all options
+      Array.from(timeInput.options).forEach(option => {
+        option.disabled = false;
+        option.style.color = "";
+      });
+    }
+  }
+
+  function convertTo24Hour(timeStr) {
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+
+    if (modifier === 'PM' && hours !== 12) {
+      hours += 12;
+    }
+    if (modifier === 'AM' && hours === 12) {
+      hours = 0;
+    }
+    return hours;
+  }
+  const dateInput = document.getElementById("dateInput");
+const timeInput = document.getElementById("timeInput");
+
+// Disable Time Input initially
+timeInput.disabled = true;
+
+// When Date changes
+dateInput.addEventListener('change', function() {
+    if (dateInput.value) {
+        timeInput.disabled = false;   // Enable time slots
+        updateAvailableTimeSlots();   // Apply your slot disabling logic
+    } else {
+        timeInput.disabled = true;    // Disable if no date
+        timeInput.value = "";         // Also clear selected time
+    }
+});
+
+
+  // Attach disablePastTimeSlots to date change
+  document.getElementById("dateInput").addEventListener("change", disablePastTimeSlots);
+
+  document.querySelector('.btn-proceed').addEventListener('click', () => {
+    const slot = confirmTime();
+    const place = document.getElementById("placeInput").value;
+    if (!slot) return;
+
+    if (cartItems.length === 0) {
+      alert("Please add at least one service to your cart.");
+      return;
+    }
+    
+    if (!place) {
+      alert("Please select a place.");
+      return;
+    }
+    
+    localStorage.setItem('cart', JSON.stringify(cartItems));
+    localStorage.setItem('slot', JSON.stringify(slot));
+    localStorage.setItem('place', place);
+
+    const date = JSON.parse(localStorage.getItem('slot')).date;
+    const time = JSON.parse(localStorage.getItem('slot')).time;
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const cartCount = cart.length;
+
+    fetch('/check-availability', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: date, time: time, cart_count: cartCount })
+    })
+    .then(res => res.json())
+    .then(data => {
+      console.log(data);
+      if (data.status === 'success') {
+        alert(data.message);
+        window.location.href = "/check-out";
+      } else {
+        alert(data.message);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Error checking availability. Try again.");
     });
- 
-    window.onload = () => filterSubServices('ac');
+  });
+
+  window.onload = () => {
+    filterSubServices('ac');
+    disablePastTimeSlots();
+  };
   </script>
   <!-- Bootstrap JS (optional) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
