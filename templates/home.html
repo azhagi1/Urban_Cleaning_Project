@@ -182,7 +182,7 @@
     <!-- Cart -->
     <div class="col-3 border p-3">
       <h6>Select Date and Time</h6>
-      <input type="date" id="dateInput" class="form-control mb-2" min="{{ today }}">
+      <input type="date" id="dateInput" class="form-control mb-2" min="{{ today }}" onchange="updateTimeSlots()">
         <select id="timeInput" class="form-select mb-2" disabled>
         <option value="">-- Choose Time Slot --</option>
         <option value="8:00 AM - 10:00 AM">8:00 AM - 10:00 AM</option>
@@ -255,22 +255,12 @@
   const selectedDate = document.getElementById("dateInput").value;
   const selectedTime = document.getElementById("timeInput").value;
 
-  if (!selectedDate) {
-    alert("Please select a Date first!");
-    return;
-  }
-
-  if (!selectedTime) {
-    alert("Please select a Time Slot first!");
-    return;
-  }
-
   const cart = document.getElementById("cart");
   const item = document.createElement("div");
   item.className = "cart-item";
   item.id = `cart-${name}`;
   item.innerHTML = `
-    <span>${name} - ₹${price}<br><small>${selectedDate}, ${selectedTime}</small></span>
+    <span>${name} - ₹${price}</span>
     <button class="btn btn-sm btn-outline-danger" onclick='removeFromCart("${name}", ${price})'>&times;</button>
   `;
   cart.appendChild(item);
@@ -315,47 +305,37 @@
       }
     }
     function updateTimeSlots() {
-    const dateInput = document.getElementById("dateInput").value;
-    const timeInput = document.getElementById("timeInput");
-    const now = new Date();
-    const selectedDate = new Date(dateInput);
+  const dateInput = document.getElementById("dateInput").value;
+  const timeInput = document.getElementById("timeInput");
+  const now = new Date();
+  const selectedDate = new Date(dateInput);
 
-    // Only apply restrictions if selected date is today
-    if (now.toDateString() === selectedDate.toDateString()) {
-      const currentHour = now.getHours();
-      const currentMinutes = now.getMinutes();
-      const currentTotalMinutes = currentHour * 60 + currentMinutes;
+  timeInput.disabled = !dateInput;
 
-      // Time slot ranges in minutes
-      const slotTimings = {
-        "8:00 AM - 10:00 AM": { start: 8 * 60, end: 10 * 60 },
-        "10:00 AM - 12:00 PM": { start: 10 * 60, end: 12 * 60 },
-        "12:00 PM - 2:00 PM": { start: 12 * 60, end: 14 * 60 },
-        "2:00 PM - 4:00 PM": { start: 14 * 60, end: 16 * 60 },
-        "4:00 PM - 6:00 PM": { start: 16 * 60, end: 18 * 60 }
-      };
+  const slotTimings = {
+    "8:00 AM - 10:00 AM": 8 * 60,
+    "10:00 AM - 12:00 PM": 10 * 60,
+    "12:00 PM - 2:00 PM": 12 * 60,
+    "2:00 PM - 4:00 PM": 14 * 60,
+    "4:00 PM - 6:00 PM": 16 * 60
+  };
 
-      // Loop through options and disable past ones
-      for (let option of timeInput.options) {
-        const slot = option.value;
-        if (slotTimings[slot]) {
-          if (slotTimings[slot].end <= currentTotalMinutes) {
-            option.disabled = true;
-            option.style.color = "gray";
-          } else {
-            option.disabled = false;
-            option.style.color = "black";
-          }
-        }
-      }
-    } else {
-      // If future date, enable all
-      for (let option of timeInput.options) {
-        option.disabled = false;
-        option.style.color = "black";
+  // Reset all options first
+  for (let option of timeInput.options) {
+    option.disabled = false;
+  }
+
+  if (now.toDateString() === selectedDate.toDateString()) {
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    for (let option of timeInput.options) {
+      if (option.value && slotTimings[option.value] <= currentMinutes) {
+        option.disabled = true;
       }
     }
   }
+}
+
   function confirmTime() {
     const date = document.getElementById("dateInput").value;
     const time = document.getElementById("timeInput").value;
