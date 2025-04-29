@@ -162,6 +162,7 @@ def history():
 
     return render_template("history.html", history=history)
 
+verification_codes={}
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -191,9 +192,6 @@ def register():
         flash("Verification code sent to your email.")
         return redirect(url_for('verify_email'))
     return render_template('register.html')
-
-
-verification_codes={}
 
 @app.route('/verify', methods=['GET', 'POST'])
 def verify_email():
@@ -340,7 +338,6 @@ def check_availability():
         # 🔄 Convert 'DD/MM/YYYY' → 'YYYY-MM-DD'
         try:
             formatted_date = datetime.strptime(input_date, '%d/%m/%Y').strftime('%Y-%m-%d')
-            print(f"Formatted date: {formatted_date}")
         except ValueError:
             return jsonify({'status': 'error', 'message': 'Invalid date format. Use DD/MM/YYYY.'}), 400
 
@@ -444,8 +441,8 @@ def confirm_booking():
             return jsonify({'status': 'error', 'message': 'Too many cart items selected.'}), 400
         
         # Step 4: Retrieve available employees for the selected date and time
-        formatted_date = datetime.strptime(date, '%d/%m/%Y').date()
-        print(f"Formatted date: {formatted_date},datatype: {type(formatted_date)}")
+        formatted_date = datetime.strptime(date, '%d/%m/%Y').strftime('%Y-%m-%d')
+
         cursor.execute("""
             SELECT employee_id
             FROM Employees
