@@ -240,6 +240,7 @@ fetch('/confirm-booking', {
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success') {
+          localStorage.setItem('paymentSummary', JSON.stringify(paymentSummary));
           window.location.href = '/confirmation'; 
         } else {
           alert(data.message);
