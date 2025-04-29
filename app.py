@@ -130,7 +130,7 @@ def history():
             LIMIT 1
         )
         WHERE bs.user_id = %s
-        ORDER BY bs.date DESC, bs.time_slot
+        ORDER BY 1 DESC, bs.time_slot
     """, (current_user.id,))
     slots = cur.fetchall()
  
@@ -438,7 +438,7 @@ def confirm_booking():
         cursor.execute("SELECT LAST_INSERT_ID()")
         booked_id = cursor.fetchone()[0]
 
-        # Step 2: Insert blocked tasks and track task_ids
+        # Step 2: Insert blocked tasks and track task IDs
         task_ids_set = set()
         for item in cart_items:
             task_name = item['name']
@@ -453,40 +453,62 @@ def confirm_booking():
 
             task_ids_set.add(task_id)
 
-        assigned_employees = set()
-        print(f"Task IDs to be assigned: {task_ids_set}")
-        # Step 3: For each task_id, find an available specialized employee
-        for task_id in task_ids_set:
-            cursor.execute("""
-                SELECT e.employee_id
-                FROM Employees AS e
-                JOIN Employee_Specializations es ON e.employee_id = es.employee_id
-                WHERE es.task_id = %s
-                  AND e.employee_id NOT IN (
-                      SELECT be.employee_id
-                      FROM blocked_employee AS be
-                      JOIN blocked_slots AS bs ON be.blocked_id = bs.blocked_id
-                      WHERE bs.date = %s AND bs.time_slot = %s
-                  )
-                LIMIT 1
-            """, (task_id, date, time))
+        assigned_employees = []
 
+        # Step 3: For each task_id, find available specialized employee
+        for task_id in task_ids_set:
+            # Get already assigned employee IDs
+            already_assigned_ids = [emp_id for emp_id, _ in assigned_employees]
+            in_clause = ', '.join(['%s'] * len(already_assigned_ids)) if already_assigned_ids else None
+
+            if in_clause:
+                query = f"""
+                    SELECT e.employee_id
+                    FROM Employees AS e
+                    JOIN Employee_Specializations es ON e.employee_id = es.employee_id
+                    WHERE es.task_id = %s
+                      AND e.employee_id NOT IN (
+                          SELECT be.employee_id
+                          FROM blocked_employee AS be
+                          JOIN blocked_slots AS bs ON be.blocked_id = bs.blocked_id
+                          WHERE bs.date = %s AND bs.time_slot = %s
+                      )
+                      AND e.employee_id NOT IN ({in_clause})
+                    LIMIT 1
+                """
+                params = [task_id, date, time] + already_assigned_ids
+            else:
+                query = """
+                    SELECT e.employee_id
+                    FROM Employees AS e
+                    JOIN Employee_Specializations es ON e.employee_id = es.employee_id
+                    WHERE es.task_id = %s
+                      AND e.employee_id NOT IN (
+                          SELECT be.employee_id
+                          FROM blocked_employee AS be
+                          JOIN blocked_slots AS bs ON be.blocked_id = bs.blocked_id
+                          WHERE bs.date = %s AND bs.time_slot = %s
+                      )
+                    LIMIT 1
+                """
+                params = [task_id, date, time]
+
+            cursor.execute(query, params)
             result = cursor.fetchone()
             if result:
-                assigned_employees.add(result[0])
+                assigned_employees.append((result[0], task_id))
             else:
                 return jsonify({
                     'status': 'error',
                     'message': f'No available specialized employee for task ID {task_id} at {time} on {date}.'
                 }), 400
 
-        print(f"Assigned Employees: {assigned_employees}")
-        # Step 4: Block selected employees
-        for emp_id in assigned_employees:
+        # Step 4: Insert into blocked_employee with task_id
+        for emp_id, task_id in assigned_employees:
             cursor.execute("""
-                INSERT INTO blocked_employee (blocked_id, employee_id)
-                VALUES (%s, %s)
-            """, (booked_id, emp_id))
+                INSERT INTO blocked_employee (blocked_id, employee_id, task_id)
+                VALUES (%s, %s, %s)
+            """, (booked_id, emp_id, task_id))
 
         conn.commit()
         cursor.close()
