@@ -116,53 +116,54 @@ def login():
 def history():
     conn = create_connection()
     cur = conn.cursor(dictionary=True)
-
-    # 1. Fetch all blocked slots for this user
+ 
+    # Fetch only blocked slots and place (not employees here)
     cur.execute("""
         SELECT bs.blocked_id, bs.date, bs.time_slot, p.place_name
         FROM blocked_slots bs
         JOIN Users u ON bs.user_id = u.user_id
-        LEFT JOIN Employees e ON e.employee_id IN (
-            SELECT employee_id FROM blocked_employee WHERE blocked_id = bs.blocked_id
+        LEFT JOIN places p ON p.place_id = (
+            SELECT e.place_id
+            FROM Employees e
+            JOIN blocked_employee be ON e.employee_id = be.employee_id
+            WHERE be.blocked_id = bs.blocked_id
+            LIMIT 1
         )
-        LEFT JOIN places p ON e.place_id = p.place_id
         WHERE bs.user_id = %s
         ORDER BY bs.date DESC, bs.time_slot
     """, (current_user.id,))
     slots = cur.fetchall()
-
+ 
     history = []
-
+ 
     for slot in slots:
-        # Get tasks for this slot
+        # Get tasks
         cur.execute("SELECT task_name FROM blocked_task WHERE blocked_id = %s", (slot['blocked_id'],))
         tasks = [t['task_name'] for t in cur.fetchall()]
-
-        # Get assigned employee
+ 
+        # Get all assigned employees
         cur.execute("""
             SELECT e.name FROM Employees e
             JOIN blocked_employee be ON e.employee_id = be.employee_id
             WHERE be.blocked_id = %s
-            LIMIT 1
         """, (slot['blocked_id'],))
-        employee = cur.fetchone()
-        employee_name = employee['name'] if employee else "N/A"
-
+        employee_rows = cur.fetchall()
+        employees = [e['name'] for e in employee_rows] if employee_rows else ["N/A"]
+ 
         history.append({
             'date': slot['date'].strftime('%d-%m-%Y') if slot['date'] else "N/A",
             'time_slot': slot['time_slot'],
             'tasks': tasks,
-            'employee_name': employee_name,
+            'employee_names': employees,
             'place': slot['place_name'] or "N/A"
         })
-
-
+ 
     cur.close()
     conn.close()
-
+ 
     return render_template("history.html", history=history)
 
-verification_codes={}
+verification_codes = {}
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -337,7 +338,7 @@ def check_availability():
 
         # 🔄 Convert 'DD/MM/YYYY' → 'YYYY-MM-DD'
         try:
-            formatted_date = datetime.strptime(input_date, '%d/%m/%Y').strftime('%Y-%m-%d')
+            formatted_date = datetime.strptime(input_date, '%d/%m/%Y').date()
         except ValueError:
             return jsonify({'status': 'error', 'message': 'Invalid date format. Use DD/MM/YYYY.'}), 400
 
@@ -404,8 +405,9 @@ def confirm_booking():
         payment_summary = data.get('paymentSummary')
         cart_items = data.get('cartItems')
         date = data.get('date')
+        date= datetime.strptime(date, "%d/%m/%Y").date()
         time = data.get('time')
-
+        print(date, time, cart_items)
         user_id = current_user.id  # Get the logged-in user's ID
 
         # Step 1: Insert into blocked_slots table
@@ -441,7 +443,6 @@ def confirm_booking():
             return jsonify({'status': 'error', 'message': 'Too many cart items selected.'}), 400
         
         # Step 4: Retrieve available employees for the selected date and time
-        formatted_date = datetime.strptime(date, '%d/%m/%Y').strftime('%Y-%m-%d')
 
         cursor.execute("""
             SELECT employee_id
@@ -452,7 +453,7 @@ def confirm_booking():
                 JOIN blocked_slots AS bs ON be.blocked_id = bs.blocked_id
                 WHERE bs.date = %s AND bs.time_slot = %s
             )
-        """, (formatted_date, time))
+        """, (date, time))
 
         available_employees = cursor.fetchall()
 
