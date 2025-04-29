@@ -401,74 +401,92 @@ from datetime import datetime
 @login_required
 def confirm_booking():
     try:
-        data = request.get_json()
-        payment_summary = data.get('paymentSummary')
-        cart_items = data.get('cartItems')
-        date = data.get('date')
-        date= datetime.strptime(date, "%d/%m/%Y").date()
-        time = data.get('time')
-        print(date, time, cart_items)
-        user_id = current_user.id  # Get the logged-in user's ID
+        subservice_to_task = {
+            # AC services
+            "AC General Service": 1,
+            "AC Gas Refill": 1,
+            "AC Installation/Uninstallation": 1,
+            "AC Not Cooling Issue Fix": 1,
+            # Floor services
+            "Deep Floor Scrubbing": 2,
+            "Stain Removal Treatment": 2,
+            "Carpet/Mat Cleaning": 2,
+            "Polishing & Buffing": 2,
+            # Kitchen services
+            "Full Kitchen Deep Clean": 3,
+            "Grease Removal (Chimney/Stove)": 3,
+            "Cabinet Cleaning": 3,
+            "Sink & Drain Cleaning": 3
+        }
 
-        # Step 1: Insert into blocked_slots table
+        data = request.get_json()
+        cart_items = data.get('cartItems')
+        date = datetime.strptime(data.get('date'), "%d/%m/%Y").date()
+        time = data.get('time')
+        user_id = current_user.id
+
         conn = create_connection()
         cursor = conn.cursor()
 
+        # Step 1: Block the slot
         cursor.execute("""
             INSERT INTO blocked_slots (user_id, date, time_slot)
             VALUES (%s, %s, %s)
         """, (user_id, date, time))
         conn.commit()
 
-        # Get the inserted booked slot ID
         cursor.execute("SELECT LAST_INSERT_ID()")
         booked_id = cursor.fetchone()[0]
 
-        # Step 2: Insert into blocked_tasks table for each cart item
+        # Step 2: Insert blocked tasks and track task_ids
+        task_ids_set = set()
         for item in cart_items:
+            task_name = item['name']
+            task_id = subservice_to_task.get(task_name)
+            if not task_id:
+                return jsonify({'status': 'error', 'message': f"Unknown sub-service: {task_name}"}), 400
+
             cursor.execute("""
                 INSERT INTO blocked_task (blocked_id, task_name)
                 VALUES (%s, %s)
-            """, (booked_id, item['name']))
+            """, (booked_id, task_name))
 
-        # Step 3: Determine the minimum number of employees required
-        cart_count = len(cart_items)
-        if cart_count <= 4:
-            min_required = 1
-        elif cart_count <= 8:
-            min_required = 2
-        elif cart_count <= 12:
-            min_required = 3
-        else:
-            return jsonify({'status': 'error', 'message': 'Too many cart items selected.'}), 400
-        
-        # Step 4: Retrieve available employees for the selected date and time
+            task_ids_set.add(task_id)
 
-        cursor.execute("""
-            SELECT employee_id
-            FROM Employees
-            WHERE employee_id NOT IN (
-                SELECT DISTINCT be.employee_id
-                FROM blocked_employee AS be
-                JOIN blocked_slots AS bs ON be.blocked_id = bs.blocked_id
-                WHERE bs.date = %s AND bs.time_slot = %s
-            )
-        """, (date, time))
+        assigned_employees = set()
+        print(f"Task IDs to be assigned: {task_ids_set}")
+        # Step 3: For each task_id, find an available specialized employee
+        for task_id in task_ids_set:
+            cursor.execute("""
+                SELECT e.employee_id
+                FROM Employees AS e
+                JOIN Employee_Specializations es ON e.employee_id = es.employee_id
+                WHERE es.task_id = %s
+                  AND e.employee_id NOT IN (
+                      SELECT be.employee_id
+                      FROM blocked_employee AS be
+                      JOIN blocked_slots AS bs ON be.blocked_id = bs.blocked_id
+                      WHERE bs.date = %s AND bs.time_slot = %s
+                  )
+                LIMIT 1
+            """, (task_id, date, time))
 
-        available_employees = cursor.fetchall()
+            result = cursor.fetchone()
+            if result:
+                assigned_employees.add(result[0])
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'No available specialized employee for task ID {task_id} at {time} on {date}.'
+                }), 400
 
-        if len(available_employees) < min_required:
-            return jsonify({
-                'status': 'error',
-                'message': f'Not enough available employees for the selected slot. Available: {len(available_employees)}, Required: {min_required}.'
-            }), 400
-
-        # Step 5: Insert into blocked_employees table
-        for i in range(min_required):
+        print(f"Assigned Employees: {assigned_employees}")
+        # Step 4: Block selected employees
+        for emp_id in assigned_employees:
             cursor.execute("""
                 INSERT INTO blocked_employee (blocked_id, employee_id)
                 VALUES (%s, %s)
-            """, (booked_id, available_employees[i][0]))
+            """, (booked_id, emp_id))
 
         conn.commit()
         cursor.close()
@@ -479,7 +497,6 @@ def confirm_booking():
     except Exception as e:
         print(f"Error during booking: {e}")
         return jsonify({'status': 'error', 'message': 'Server error occurred. Please try again.'}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True)
