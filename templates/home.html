@@ -250,35 +250,56 @@
     }
  
     function addToCart(name, price) {
-      if (addedItems.has(name)) return;
-      const cart = document.getElementById("cart");
-      const item = document.createElement("div");
-      item.className = "cart-item";
-      item.id = `cart-${name}`;
-      item.innerHTML = `
-        <span>${name} - ₹${price}</span>
-        <button class="btn btn-sm btn-outline-danger" onclick='removeFromCart("${name}", ${price})'>&times;</button>
-      `;
-      cart.appendChild(item);
-      total += price;
-      cartItems.push({ name, price });
-      document.getElementById("total").innerText = total;
-      addedItems.add(name);
-      const btn = document.getElementById(`add-${name}`);
-      if (btn) btn.disabled = true;
-    }
+  if (addedItems.has(name)) return;
+
+  const selectedDate = document.getElementById("dateInput").value;
+  const selectedTime = document.getElementById("timeInput").value;
+
+  if (!selectedDate) {
+    alert("Please select a Date first!");
+    return;
+  }
+
+  if (!selectedTime) {
+    alert("Please select a Time Slot first!");
+    return;
+  }
+
+  const cart = document.getElementById("cart");
+  const item = document.createElement("div");
+  item.className = "cart-item";
+  item.id = `cart-${name}`;
+  item.innerHTML = `
+    <span>${name} - ₹${price}<br><small>${selectedDate}, ${selectedTime}</small></span>
+    <button class="btn btn-sm btn-outline-danger" onclick='removeFromCart("${name}", ${price})'>&times;</button>
+  `;
+  cart.appendChild(item);
+
+  total += price;
+  cartItems.push({ name, price, date: selectedDate, time: selectedTime });  // ✅ Save selected time separately for each service
+  document.getElementById("total").innerText = total;
+
+  addedItems.add(name);
+  const btn = document.getElementById(`add-${name}`);
+  if (btn) btn.disabled = true;
+}
+
  
     function removeFromCart(name, price) {
-      const item = document.getElementById(`cart-${name}`);
-      if (item) item.remove();
-      total -= price;
-      const index = cartItems.findIndex(i => i.name === name);
-      if (index > -1) cartItems.splice(index, 1);
-      document.getElementById("total").innerText = total;
-      addedItems.delete(name);
-      const btn = document.getElementById(`add-${name}`);
-      if (btn) btn.disabled = false;
-    }
+  const item = document.getElementById(`cart-${name}`);
+  if (item) item.remove();
+
+  total -= price;
+  const index = cartItems.findIndex(i => i.name === name);
+  if (index > -1) cartItems.splice(index, 1);
+
+  document.getElementById("total").innerText = total;
+
+  addedItems.delete(name);
+  const btn = document.getElementById(`add-${name}`);
+  if (btn) btn.disabled = false;
+}
+
  
     function confirmTime() {
       const date = document.getElementById("dateInput").value;
