@@ -52,7 +52,7 @@
 }
  
     h3 {
-      color: #f7c59f;
+      color: #6b3409;
     }
  
     .history-card:hover {
@@ -112,7 +112,7 @@
     <div class="row justify-content-center">
       <div class="col-md-6">
         <div class="history-card">
-          <h5>{{ entry.date }} - {{ entry.time_slot }} at {{ entry.place }}</h5>
+          <h5>{{ entry.date }} - {{ entry.time_slot }}</h5>
           {% for emp, subservices in entry.employee_tasks.items() %}
             <div class="employee-block">
               <h6>Employee: {{ emp }}</h6>
