@@ -125,7 +125,19 @@
       border: 1px solid #cce0ff;
       box-shadow: none;
     }
- 
+    .delete-sub-btn {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .delete-sub-btn:hover {
+      background-color: #ad9797;
+    }
     .form-control:focus, .form-select:focus {
       outline: none;
       box-shadow: 0 0 6px 2px #a3d5ff;
@@ -261,7 +273,8 @@
   item.id = `cart-${name}`;
   item.innerHTML = `
     <span>${name} - ₹${price}</span>
-    <button class="btn btn-sm btn-outline-danger" onclick='removeFromCart("${name}", ${price})'>&times;</button>
+    
+    <span><button type="button" class="delete-sub-btn" onclick='removeFromCart("${name}", ${price})''>✕</button></span>
   `;
   cart.appendChild(item);
 
