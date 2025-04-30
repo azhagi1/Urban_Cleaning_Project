@@ -176,7 +176,7 @@ def history():
         SELECT bs.blocked_id, bs.date, bs.time_slot, bs.booking_status
         FROM blocked_slots bs
         WHERE bs.user_id = %s
-        ORDER BY bs.date ASC, bs.time_slot
+        ORDER BY 1 DESC, bs.time_slot
     """, (current_user.id,))
     slots = cur.fetchall()
 
