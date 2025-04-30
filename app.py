@@ -116,10 +116,10 @@ def login():
 def history():
     conn = create_connection()
     cur = conn.cursor(dictionary=True)
- 
-    # Fetch only blocked slots and place (not employees here)
+
+    # Fetch blocked slots with place
     cur.execute("""
-        SELECT bs.blocked_id, bs.date, bs.time_slot, p.place_name
+        SELECT bs.blocked_id, bs.date, bs.time_slot
         FROM blocked_slots bs
         JOIN Users u ON bs.user_id = u.user_id
         LEFT JOIN places p ON p.place_id = (
@@ -130,38 +130,48 @@ def history():
             LIMIT 1
         )
         WHERE bs.user_id = %s
-        ORDER BY 1 DESC, bs.time_slot
+        ORDER BY bs.date ASC, bs.time_slot
     """, (current_user.id,))
     slots = cur.fetchall()
- 
+
     history = []
- 
+
     for slot in slots:
-        # Get tasks
-        cur.execute("SELECT task_name FROM blocked_task WHERE blocked_id = %s", (slot['blocked_id'],))
-        tasks = [t['task_name'] for t in cur.fetchall()]
- 
-        # Get all assigned employees
+        # Fetch only the booked task_names for this blocked_id per employee
         cur.execute("""
-            SELECT e.name FROM Employees e
-            JOIN blocked_employee be ON e.employee_id = be.employee_id
+            SELECT e.name AS employee_name, bt.task_name AS subservice_name
+            FROM blocked_employee be
+            JOIN Employees e ON be.employee_id = e.employee_id
+            JOIN blocked_task bt ON bt.blocked_id = be.blocked_id
             WHERE be.blocked_id = %s
+              AND bt.task_name IN (
+                  SELECT s.subservice_name
+                  FROM SubServices s
+                  WHERE s.task_id = be.task_id
+              )
         """, (slot['blocked_id'],))
-        employee_rows = cur.fetchall()
-        employees = [e['name'] for e in employee_rows] if employee_rows else ["N/A"]
- 
+        mappings = cur.fetchall()
+
+        # Group subservices by employee
+        employee_tasks = {}
+        for row in mappings:
+            emp_name = row['employee_name']
+            subservice = row['subservice_name']
+            if emp_name not in employee_tasks:
+                employee_tasks[emp_name] = []
+            employee_tasks[emp_name].append(subservice)
+
         history.append({
             'date': slot['date'].strftime('%d-%m-%Y') if slot['date'] else "N/A",
             'time_slot': slot['time_slot'],
-            'tasks': tasks,
-            'employee_names': employees,
-            'place': slot['place_name'] or "N/A"
+            'employee_tasks': employee_tasks
         })
- 
+
     cur.close()
     conn.close()
- 
+
     return render_template("history.html", history=history)
+
 
 verification_codes = {}
 @app.route('/register', methods=['GET', 'POST'])
