@@ -111,24 +111,70 @@ def login():
 
 
 
-@app.route('/history')
+@app.route('/history', methods=['GET', 'POST'])
 @login_required
 def history():
     conn = create_connection()
     cur = conn.cursor(dictionary=True)
 
-    # Fetch blocked slots with place
+    if request.method == 'POST':
+        booking_id = request.form.get('booking_id')
+        subservice = request.form.get('subservice')
+
+        if booking_id and not subservice:
+            # Cancel the entire booking
+            cur.execute("UPDATE blocked_slots SET booking_status = 'cancelled' WHERE blocked_id = %s", (booking_id,))
+            cur.execute("UPDATE blocked_employee SET booking_status = 'cancelled' WHERE blocked_id = %s", (booking_id,))
+            cur.execute("UPDATE blocked_task SET booking_status = 'cancelled' WHERE blocked_id = %s", (booking_id,))
+            conn.commit()
+            flash('Booking cancelled successfully.')
+
+        elif booking_id and subservice:
+            # Cancel a specific subservice
+            cur.execute("""
+                UPDATE blocked_task 
+                SET booking_status = 'cancelled'
+                WHERE blocked_id = %s AND task_name = %s
+            """, (booking_id, subservice))
+
+            cur.execute("""
+                SELECT be.employee_id, be.task_id 
+                FROM blocked_employee be
+                JOIN SubServices s ON s.task_id = be.task_id
+                WHERE be.blocked_id = %s AND s.subservice_name = %s
+            """, (booking_id, subservice))
+            result = cur.fetchone()
+
+            if result:
+                emp_id = result['employee_id']
+                task_id = result['task_id']
+
+                # Check if any active tasks remain for the same employee & task_id
+                cur.execute("""
+                    SELECT COUNT(*) AS count
+                    FROM blocked_task bt
+                    JOIN SubServices s ON bt.task_name = s.subservice_name
+                    WHERE bt.blocked_id = %s AND s.task_id = %s AND bt.booking_status != 'cancelled'
+                """, (booking_id, task_id))
+                task_count = cur.fetchone()['count']
+
+                if task_count == 0:
+                    # Cancel employee-task assignment too
+                    cur.execute("""
+                        UPDATE blocked_employee 
+                        SET booking_status = 'cancelled' 
+                        WHERE blocked_id = %s AND employee_id = %s
+                    """, (booking_id, emp_id))
+
+            conn.commit()
+            flash('Subservice cancelled successfully.')
+
+        return redirect(url_for('history'))
+
+    # --- GET: Render history ---
     cur.execute("""
-        SELECT bs.blocked_id, bs.date, bs.time_slot
+        SELECT bs.blocked_id, bs.date, bs.time_slot, bs.booking_status
         FROM blocked_slots bs
-        JOIN Users u ON bs.user_id = u.user_id
-        LEFT JOIN places p ON p.place_id = (
-            SELECT e.place_id
-            FROM Employees e
-            JOIN blocked_employee be ON e.employee_id = be.employee_id
-            WHERE be.blocked_id = bs.blocked_id
-            LIMIT 1
-        )
         WHERE bs.user_id = %s
         ORDER BY bs.date ASC, bs.time_slot
     """, (current_user.id,))
@@ -137,41 +183,38 @@ def history():
     history = []
 
     for slot in slots:
-        # Fetch only the booked task_names for this blocked_id per employee
         cur.execute("""
-            SELECT e.name AS employee_name, bt.task_name AS subservice_name
+            SELECT e.name AS employee_name, bt.task_name AS subservice_name, bt.booking_status
             FROM blocked_employee be
             JOIN Employees e ON be.employee_id = e.employee_id
             JOIN blocked_task bt ON bt.blocked_id = be.blocked_id
             WHERE be.blocked_id = %s
               AND bt.task_name IN (
-                  SELECT s.subservice_name
-                  FROM SubServices s
-                  WHERE s.task_id = be.task_id
+                  SELECT s.subservice_name FROM SubServices s WHERE s.task_id = be.task_id
               )
         """, (slot['blocked_id'],))
         mappings = cur.fetchall()
 
-        # Group subservices by employee
         employee_tasks = {}
         for row in mappings:
             emp_name = row['employee_name']
             subservice = row['subservice_name']
+            sub_status = row['booking_status']
             if emp_name not in employee_tasks:
                 employee_tasks[emp_name] = []
-            employee_tasks[emp_name].append(subservice)
+            employee_tasks[emp_name].append((subservice, sub_status))
 
         history.append({
+            'id': slot['blocked_id'],
             'date': slot['date'].strftime('%d-%m-%Y') if slot['date'] else "N/A",
             'time_slot': slot['time_slot'],
-            'employee_tasks': employee_tasks
+            'employee_tasks': employee_tasks,
+            'status': slot['booking_status'],
         })
 
     cur.close()
     conn.close()
-
     return render_template("history.html", history=history)
-
 
 verification_codes = {}
 @app.route('/register', methods=['GET', 'POST'])
