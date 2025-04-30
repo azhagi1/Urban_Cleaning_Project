@@ -338,7 +338,9 @@
   }
 
   if (now.toDateString() === selectedDate.toDateString()) {
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const bufferMinutes = 20;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
+
 
     for (let option of timeInput.options) {
       if (option.value && slotTimings[option.value] <= currentMinutes) {
