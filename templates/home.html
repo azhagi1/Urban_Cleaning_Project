@@ -134,6 +134,22 @@
       font-size: 0.8rem;
       cursor: pointer;
     }
+    .task {
+    padding: 10px;
+    margin: 10px;
+    border: 1px solid gray;
+    border-radius: 5px;
+    display: inline-block;
+    cursor: pointer;
+    background-color: white;
+    transition: background-color 0.3s ease;
+}
+
+.task.selected {
+    background-color: lightblue;
+    color: white;
+}
+
 
     .delete-sub-btn:hover {
       background-color: #ad9797;
@@ -180,9 +196,29 @@
     <!-- Services List -->
     <div class="col-3 border p-3">
       <h5>Services</h5>
-      <div class="service" onclick="filterSubServices('ac')">AC Repair</div>
-      <div class="service" onclick="filterSubServices('floor')">Floor Cleaning</div>
-      <div class="service" onclick="filterSubServices('kitchen')">Kitchen Cleaning</div>
+      <div class="service" onclick="filterSubServices('ac'); highlightService(this)">AC Repair</div>
+      <div class="service" onclick="filterSubServices('floor'); highlightService(this)">Floor Cleaning</div>
+      <div class="service" onclick="filterSubServices('kitchen'); highlightService(this)">Kitchen Cleaning</div>
+
+      <script>
+        function highlightService(selectedElement) {
+          // Remove 'selected' class from all services
+          const services = document.querySelectorAll('.service');
+          services.forEach(service => service.classList.remove('selected'));
+
+          // Add 'selected' class to the clicked service
+          selectedElement.classList.add('selected');
+        }
+      </script>
+
+      <style>
+        .service.selected {
+          background: linear-gradient(145deg, #e8ad47, #f0c362);
+          transform: translateY(-2px);
+          color: #fff;
+          font-weight: bold;
+        }
+      </style>
     </div>
  
     <!-- Sub Services List -->
@@ -252,11 +288,12 @@
         const div = document.createElement("div");
         div.className = "sub-service";
         div.innerHTML = `
-          <h6>${service.name}</h6>
-          <p>${service.desc}</p>
-          <p><strong>₹${service.price}</strong></p>
-          <button class="btn btn-sm btn-black" id="add-${service.name}" onclick='addToCart("${service.name}", ${service.price})' ${addedItems.has(service.name) ? 'disabled' : ''}>Add</button>
-        `;
+  <h6>${service.name}</h6>
+  <p>${service.desc}</p>
+  <p><strong>₹${service.price}</strong></p>
+  <button class="btn btn-sm btn-black" id="add-${service.name}" onclick='addToCart("${service.name}", ${service.price})' ${addedItems.has(service.name) ? 'disabled' : ''}>Add</button>
+`;
+
         container.appendChild(div);
       });
     }
@@ -338,9 +375,7 @@
   }
 
   if (now.toDateString() === selectedDate.toDateString()) {
-    const bufferMinutes = 20;
-    const currentMinutes = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
-
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     for (let option of timeInput.options) {
       if (option.value && slotTimings[option.value] <= currentMinutes) {
