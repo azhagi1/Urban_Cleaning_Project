@@ -188,7 +188,7 @@ def history():
         SELECT bs.blocked_id, bs.date, bs.time_slot, bs.booking_status
         FROM blocked_slots bs
         WHERE bs.user_id = %s
-        ORDER BY 1 DESC, bs.time_slot
+        ORDER BY 2 ASC, bs.time_slot
     """, (current_user.id,))
     slots = cur.fetchall()
 
@@ -226,7 +226,10 @@ def history():
 
     cur.close()
     conn.close()
-    return render_template("history.html", history=history)
+    today_str = date.today().strftime('%d-%m-%Y')
+    print("Today's date:", today_str)
+    print("Data type of today's date:", type(today_str))
+    return render_template("history.html", history=history, today=today_str)
 
 verification_codes = {}
 @app.route('/register', methods=['GET', 'POST'])
