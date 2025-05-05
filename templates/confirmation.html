@@ -104,6 +104,13 @@
       const payment = JSON.parse(localStorage.getItem('paymentSummary')) || {};
       const place = localStorage.getItem('place') || "Not specified";
 
+      // Simulate fetching customer details from the database
+      const customer = {
+      name: "John Doe", // Replace with actual database retrieval logic
+      phone: "9876543210", // Replace with actual database retrieval logic
+      address: place
+      };
+
       // Header
       doc.setFontSize(16);
       doc.setTextColor(13, 99, 192);
@@ -115,6 +122,34 @@
       doc.line(10, y, 200, y);
       y += 6;
 
+      // From and To Details
+      doc.setFontSize(13);
+      doc.setFont(undefined, 'bold');
+      doc.text("From:", 10, y);
+      y += 6;
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(11);
+      doc.text("Neat Nest Cleaning Service", 12, y);
+      y += 6;
+      doc.text("CIEC, Thoraipakkam", 12, y);
+      y += 6;
+      doc.text("Contact: 7654789065, 9354687937", 12, y);
+      y += 10;
+
+      doc.setFont(undefined, 'bold');
+      doc.text("To:", 10, y);
+      y += 6;
+      doc.setFont(undefined, 'normal');
+      doc.text(`Name: ${customer.name}`, 12, y);
+      y += 6;
+      doc.text(`Phone: ${customer.phone}`, 12, y);
+      y += 6;
+      doc.text(`Address: ${customer.address}`, 12, y);
+      y += 10;
+
+      doc.line(10, y, 200, y);
+      y += 8;
+
       // Service Summary
       doc.setFontSize(13);
       doc.setFont(undefined, 'bold');
@@ -124,14 +159,14 @@
       doc.setFontSize(11);
 
       if (cart.length > 0) {
-        cart.forEach(item => {
-          doc.text(item.name, 12, y);
-          doc.text(`Rs. ${item.price}`, 100, y, { align: 'right' });
-          y += 6;
-        });
-      } else {
-        doc.text("No services selected.", 12, y);
+      cart.forEach(item => {
+        doc.text(item.name, 12, y);
+        doc.text(`Rs. ${item.price}`, 100, y, { align: 'right' });
         y += 6;
+      });
+      } else {
+      doc.text("No services selected.", 12, y);
+      y += 6;
       }
 
       y += 4;
@@ -171,52 +206,50 @@
       doc.setFontSize(11);
 
       if (payment.itemTotal !== undefined) {
-        doc.text("Item Total", 12, y);
-        doc.text(`Rs .${payment.itemTotal}`, 100, y, { align: 'right' });
-        y += 6;
+      doc.text("Item Total", 12, y);
+      doc.text(`Rs. ${payment.itemTotal}`, 100, y, { align: 'right' });
+      y += 6;
 
-        doc.text("Taxes & Fees", 12, y);
-        doc.text(`Rs. ${payment.taxes}`, 100, y, { align: 'right' });
-        y += 6;
+      doc.text("Taxes & Fees", 12, y);
+      doc.text(`Rs. ${payment.taxes}`, 100, y, { align: 'right' });
+      y += 6;
 
-        doc.text("Advance Paid", 12, y);
-        doc.text(`Rs .${payment.advance}`, 100, y, { align: 'right' });
-        y += 6;
+      doc.text("Advance Paid", 12, y);
+      doc.text(`Rs. ${payment.advance}`, 100, y, { align: 'right' });
+      y += 6;
 
-        doc.text("Post-Service Payment", 12, y);
-        doc.text(`Rs. ${payment.postPay}`, 100, y, { align: 'right' });
-        y += 6;
+      doc.text("Post-Service Payment", 12, y);
+      doc.text(`Rs. ${payment.postPay}`, 100, y, { align: 'right' });
+      y += 6;
 
-        doc.text("Tip", 12, y);
-        doc.text(`Rs. ${payment.tip}`, 100, y, { align: 'right' });
-        y += 6;
+      doc.text("Tip", 12, y);
+      doc.text(`Rs. ${payment.tip}`, 100, y, { align: 'right' });
+      y += 6;
 
-        doc.setFont(undefined, 'bold');
-        doc.text("Total Amount", 12, y);
-        doc.text(`Rs. ${payment.itemTotal}`, 100, y, { align: 'right' });
-        y+=6;
+      doc.setFont(undefined, 'bold');
+      doc.text("Total Amount", 12, y);
+      doc.text(`Rs. ${payment.itemTotal}`, 100, y, { align: 'right' });
+      y += 6;
 
-        doc.setFont(undefined, 'bold');
-        doc.text("Paid Advance", 12, y);
-        doc.text(`Rs. ${payment.advance}`, 100, y, { align: 'right' });
-        y += 6;
+      doc.setFont(undefined, 'bold');
+      doc.text("Paid Advance", 12, y);
+      doc.text(`Rs. ${payment.advance}`, 100, y, { align: 'right' });
+      y += 6;
 
       } else {
-        doc.text("No payment data found.", 12, y);
-        y += 6;
+      doc.text("No payment data found.", 12, y);
+      y += 6;
       }
 
-
-    // Footer
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'italic');
-    doc.setTextColor(150);
-    doc.text("NeatNest © 2025 | Making Urban Cleaning Seamless", 105, 290, { align: 'center' });
-    doc.save("NeatNest_Invoice.pdf");
-    localStorage.removeItem('cart');
-    localStorage.removeItem('paymentSummary');
-  }
-
+      // Footer
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'italic');
+      doc.setTextColor(150);
+      doc.text("NeatNest © 2025 | Making Urban Cleaning Seamless", 105, 290, { align: 'center' });
+      doc.save("NeatNest_Invoice.pdf");
+      localStorage.removeItem('cart');
+      localStorage.removeItem('paymentSummary');
+    }
 
 
   </script>

@@ -454,6 +454,7 @@ def checkout():
 
 @app.route('/confirmation')
 def confirmation():
+    
     return render_template('confirmation.html')
 
 from flask import Flask, request, jsonify, session, redirect, url_for
