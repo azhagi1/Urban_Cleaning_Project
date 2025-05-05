@@ -172,12 +172,7 @@
   <header class="text-white p-3 d-flex justify-content-between align-items-center">
     <h3 class="m-0">NeatNest</h3>
     <div>
-      <input id="placeInput" class="form-control d-inline w-auto me-2" list="places" placeholder="Choose place">
-      <datalist id="places">
-        {% for place in places %}
-          <option value="{{ place }}">
-        {% endfor %}
-      </datalist>
+      
       <a href="{{ url_for('history') }}" class="btn btn-black me-2">History</a>
 
       {% if current_user.is_authenticated %}
@@ -231,7 +226,7 @@
     <div class="col-3 border p-3">
       <h6>Select Date and Time</h6>
       <input type="date" id="dateInput" class="form-control mb-2" min="{{ today }}" onchange="updateTimeSlots()">
-        <select id="timeInput" class="form-select mb-2" disabled>
+      <select id="timeInput" class="form-select mb-2" disabled>
         <option value="">-- Choose Time Slot --</option>
         <option value="8:00 AM - 10:00 AM">8:00 AM - 10:00 AM</option>
         <option value="10:00 AM - 12:00 PM">10:00 AM - 12:00 PM</option>
@@ -239,6 +234,20 @@
         <option value="2:00 PM - 4:00 PM">2:00 PM - 4:00 PM</option>
         <option value="4:00 PM - 6:00 PM">4:00 PM - 6:00 PM</option>
       </select>
+      <input id="placeInput" class="form-control d-inline w-100 mb-2" list="places" placeholder="Choose place">
+      <datalist id="places">
+        {% for place in places %}
+          <option value="{{ place }}">
+        {% endfor %}
+      </datalist>
+      <style>
+        @media (min-width: 768px) {
+          #placeInput {
+        width: calc(100% - 200px); /* Adjust width based on time slot dropdown */
+          }
+        }
+      </style>
+      <div class="my-3"></div>
       <button class="btn btn-primary w-100" onclick="confirmTime()">Confirm Slot</button>
       <div id="selected-slot" class="mt-2 text-success fw-semibold"></div>
       <h5>Cart</h5>

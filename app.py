@@ -175,12 +175,8 @@ def history():
             active_count = cur.fetchone()['active_count']
 
             if active_count == 0:
-                # Update the blocked slot as cancelled
-                cur.execute("""
-                    UPDATE blocked_slots
-                    SET booking_status = 'cancelled'
-                    WHERE blocked_id = %s
-                """, (booking_id,))
+                # Update the booking status to 'cancelled'
+                cur.execute("UPDATE blocked_slots SET booking_status = 'cancelled' WHERE blocked_id = %s", (booking_id,))
 
             conn.commit()
             flash('Subservice cancelled successfully.')
