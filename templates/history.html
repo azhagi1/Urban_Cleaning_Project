@@ -78,6 +78,11 @@
       text-decoration: line-through;
       color: #999;
     }
+
+    .disabled-btn {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -112,13 +117,17 @@
                       <span class="badge bg-light text-dark">Unknown</span>
                     {% endif %}
 
-                    {% if entry.status != 'cancelled' %}
+                    {% if entry.status != 'cancelled' and entry.date != today %}
                       <form method="POST">
                         <input type="hidden" name="booking_id" value="{{ entry.id }}">
                         <button class="btn btn-outline-danger btn-sm" type="submit" title="Cancel Booking">
                           <i class="bi bi-trash"></i>
                         </button>
                       </form>
+                    {% else %}
+                      <button class="btn btn-outline-danger btn-sm disabled-btn" title="Cancel Booking" disabled>
+                        <i class="bi bi-trash"></i>
+                      </button>
                     {% endif %}
                   </div>
 
@@ -131,12 +140,14 @@
                         {% for sub, status in subservices %}
                           <li class="subservice-item">
                             <span class="{% if status == 'cancelled' %}strikeout{% endif %}">{{ sub }}</span>
-                            {% if status != 'cancelled' and entry.status != 'cancelled' %}
+                            {% if status != 'cancelled' and entry.status != 'cancelled' and entry.date != today %}
                               <form method="POST" style="display:inline;">
                                 <input type="hidden" name="booking_id" value="{{ entry.id }}">
                                 <input type="hidden" name="subservice" value="{{ sub }}">
                                 <button type="submit" class="delete-sub-btn" title="Cancel Subservice">✕</button>
                               </form>
+                            {% elif entry.date == today %}
+                              <button class="delete-sub-btn disabled-btn" disabled>✕</button>
                             {% endif %}
                           </li>
                         {% endfor %}
