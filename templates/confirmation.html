@@ -106,7 +106,7 @@
 
       // Simulate fetching customer details from the database
       const customer = {
-      name: "John Doe", // Replace with actual database retrieval logic
+      name: "Tamil Alagi", // Replace with actual database retrieval logic
       phone: "9876543210", // Replace with actual database retrieval logic
       address: place
       };
@@ -121,35 +121,28 @@
       y += 10;
       doc.line(10, y, 200, y);
       y += 6;
-
-      // From and To Details
+      // From and To Details (Parallel Layout)
       doc.setFontSize(13);
       doc.setFont(undefined, 'bold');
       doc.text("From:", 10, y);
+      doc.text("To:", 120, y);
       y += 6;
+
       doc.setFont(undefined, 'normal');
       doc.setFontSize(11);
       doc.text("Neat Nest Cleaning Service", 12, y);
+      doc.text(`Name: ${customer.name}`, 122, y);
       y += 6;
+
       doc.text("CIEC, Thoraipakkam", 12, y);
+      doc.text(`Phone: ${customer.phone}`, 122, y);
       y += 6;
+
       doc.text("Contact: 7654789065, 9354687937", 12, y);
+      doc.text(`Address: ${customer.address}`, 122, y);
       y += 10;
-
-      doc.setFont(undefined, 'bold');
-      doc.text("To:", 10, y);
-      y += 6;
-      doc.setFont(undefined, 'normal');
-      doc.text(`Name: ${customer.name}`, 12, y);
-      y += 6;
-      doc.text(`Phone: ${customer.phone}`, 12, y);
-      y += 6;
-      doc.text(`Address: ${customer.address}`, 12, y);
-      y += 10;
-
       doc.line(10, y, 200, y);
-      y += 8;
-
+      y += 6;
       // Service Summary
       doc.setFontSize(13);
       doc.setFont(undefined, 'bold');
