@@ -166,6 +166,22 @@ def history():
                         WHERE blocked_id = %s AND employee_id = %s
                     """, (booking_id, emp_id))
 
+            # Check if all subservices for the booking are cancelled
+            cur.execute("""
+                SELECT COUNT(*) AS active_count
+                FROM blocked_task
+                WHERE blocked_id = %s AND booking_status != 'cancelled'
+            """, (booking_id,))
+            active_count = cur.fetchone()['active_count']
+
+            if active_count == 0:
+                # Update the blocked slot as cancelled
+                cur.execute("""
+                    UPDATE blocked_slots
+                    SET booking_status = 'cancelled'
+                    WHERE blocked_id = %s
+                """, (booking_id,))
+
             conn.commit()
             flash('Subservice cancelled successfully.')
 
